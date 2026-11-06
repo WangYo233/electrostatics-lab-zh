@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>平台自检</title>
+  <style>body{font-family:"Microsoft YaHei",sans-serif;max-width:640px;margin:60px auto;padding:0 20px;color:#142033;line-height:1.8}a.b{display:inline-block;margin:6px 8px 6px 0;padding:8px 16px;border-radius:8px;background:#3d55d1;color:#fff;text-decoration:none}pre{background:#f4f6fa;border:1px solid #dde3ec;border-radius:8px;padding:10px;white-space:pre-wrap;font-size:13px}</style>
+</head>
+<body>
+  <h1>平台自检</h1>
+  <p>自检会自动逐个打开每个模型、每个阶段，点击全部按钮和开关，运行场强合成向导、例题探究和题目添加，并在页面右下角显示结果。约 1～2 分钟，期间不要操作页面。</p>
+  <p><a class="b" href="lab.html#audit">① 检查实验室</a><a class="b" href="examples.html#audit">② 检查例题页</a></p>
+  <h2>上次结果</h2>
+  <pre id="r">（还没有运行过）</pre>
+  <script>
+    var a = localStorage.getItem('ejp-lab:audit:实验室'), b = localStorage.getItem('ejp-lab:audit:例题页');
+    if (a || b) document.getElementById('r').textContent = [a, b].filter(Boolean).join('\n\n');
+  </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+/* 设计令牌与基础组件
+   界面强调色用靛蓝（与数据色橙/蓝/灰分离，避免把界面色误读成物理量）；数据色见 js/models/common.js（Okabe–Ito） */
+:root {
+  --bg: #eef1f6; --surface: #ffffff; --surface-2: #f6f8fb; --ink: #142033; --ink-2: #3a4a60; --muted: #5a6a80;
+  --line: #dde3ec; --line-2: #c8d1de;
+  --accent: #3d55d1; --accent-2: #2c41ad; --accent-soft: #e9edfc;
+  --chrome: #0e1626; --chrome-2: #18233a; --chrome-ink: #dfe7f3; --chrome-muted: #a3b1c8;
+  --pos: #d55e00; --neg: #0072b2; --zero: #4a5566; --probe: #cc79a7; --ok: #009e73; --bad: #b4233c;
+  --r: 10px; --r-s: 7px;
+  --shadow: 0 1px 2px rgba(16,28,48,.06), 0 6px 20px rgba(16,28,48,.06);
+  --shadow-lg: 0 12px 40px rgba(10,20,40,.22);
+  --ease: cubic-bezier(.22,.8,.26,1);
+  font-family: "Times New Roman", "Microsoft YaHei", "微软雅黑", "PingFang SC", sans-serif;
+  color: var(--ink); background: var(--bg);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+/* 全平台统一的数学字体：Cambria Math 是 Windows 自带的 OpenType 数学字体，根号、分数线按字体的数学参数完整绘制 */
+:root { --math-font: "Cambria Math", "STIX Two Math", "Latin Modern Math", "Times New Roman", serif; }
+math { font-family: var(--math-font); font-size: 1.08em; }
+/* 文字中的根号（U.rich 生成的 MathML <msqrt>）：与正文同字号；根号与横线由数学字体绘制，显示公式不裁切 */
+math.rm { font-size: 1em; }
+math { overflow: visible; }
+/* SVG 示意图中的根号（U.svgRad）：√ 与被开方数都用 Times New Roman，√ 顶端横笔与上划线等高，连成一条 */
+.svg-rs, .svg-rb { font-family: "Times New Roman", serif; }
+h1, h2, h3, h4 { margin: 0 0 .4em; font-weight: 600; letter-spacing: .01em; }
+h2 { font-size: 15px; } h3 { font-size: 13.5px; } h4 { font-size: 12.5px; color: var(--ink-2); }
+p { margin: .3em 0; }
+a { color: var(--accent); }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.skip { position: absolute; left: -999px; top: 0; background: #fff; padding: 6px 10px; z-index: 99; }
+.skip:focus { left: 8px; }
+.muted { color: var(--muted); }
+.note { color: var(--muted); font-size: 12.5px; }
+kbd { font: 11px/1 "Times New Roman", sans-serif; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; margin-left: 6px; }
+
+.btn { border: 1px solid var(--line-2); background: var(--surface); border-radius: var(--r-s); padding: 5px 11px; transition: background .15s, border-color .15s, color .15s, transform .08s, box-shadow .15s; }
+.btn:hover { border-color: var(--accent); color: var(--accent-2); }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(61,85,209,.25); }
+.btn.primary:hover { background: var(--accent-2); color: #fff; }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-2); }
+.btn.mini { padding: 1px 8px; font-size: 12.5px; }
+.btn.big { padding: 9px 18px; font-size: 15px; width: 100%; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.link { border: 0; background: none; color: var(--accent); padding: 0; }
+
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(16px); background: var(--chrome); color: var(--chrome-ink);
+  padding: 9px 16px; border-radius: 8px; opacity: 0; transition: .3s var(--ease); pointer-events: none; z-index: 100; max-width: 90vw; box-shadow: var(--shadow-lg); }
+#toast.show { opacity: 1; transform: translateX(-50%); }
+
+/* 首页 */
+.home-hero { position: relative; height: 380px; background: radial-gradient(120% 100% at 30% 40%, #16233a 0%, #0b1220 60%, #070c16 100%); color: var(--chrome-ink); overflow: hidden; }
+.home-hero canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.home-hero .hero-in { position: relative; max-width: 1120px; margin: 0 auto; padding: 70px 24px 0; }
+.home-hero h1 { font-size: 34px; letter-spacing: .04em; margin-bottom: 10px; }
+.home-hero p { max-width: 560px; color: #b7c4d8; font-size: 15px; }
+.home-hero .btn.primary, .home-hero .btn.hero-2 { margin-top: 16px; padding: 9px 20px; font-size: 15px; display: inline-block; text-decoration: none; }
+.home-hero .btn.hero-2 { margin-left: 8px; background: rgba(255,255,255,.08); color: #dfe7f3; border-color: rgba(255,255,255,.25); }
+.home { max-width: 1120px; margin: -46px auto 0; padding: 0 24px 40px; position: relative; }
+.cat { margin: 26px 0 8px; font-size: 13px; color: var(--muted); letter-spacing: .12em; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.card-link { position: relative; display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 16px 18px; text-decoration: none; color: inherit;
+  box-shadow: var(--shadow); transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .2s; overflow: hidden; animation: rise .5s var(--ease) both; }
+.card-link::after { content: ""; position: absolute; left: 0; top: 0; height: 3px; width: 100%; background: linear-gradient(90deg, var(--pos), #e69f00, var(--neg)); transform: scaleX(0); transform-origin: left; transition: transform .35s var(--ease); }
+.card-link:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(16,28,48,.12); border-color: var(--line-2); }
+.card-link:hover::after { transform: scaleX(1); }
+.card-link .num { font: 700 13px "Times New Roman", serif; color: var(--accent); letter-spacing: .08em; }
+.card-link h2 { font-size: 17px; margin: 4px 0 6px; }
+.card-link p { color: var(--muted); margin: 0; font-size: 13px; }
+.card-link .go { position: absolute; right: 14px; top: 14px; color: var(--muted); transition: color .2s, transform .2s var(--ease); }
+.card-link:hover .go { color: var(--accent); transform: translateX(3px); }
+.home .conv { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 18px; margin-top: 26px; box-shadow: var(--shadow); }
+.home .conv li { margin: 3px 0; }
+.home footer { color: var(--muted); font-size: 12.5px; margin-top: 18px; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

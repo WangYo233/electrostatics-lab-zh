@@ -1,0 +1,116 @@
+/* 理论页：三部分结构、公式与符号说明、模型示意图、参数表；公式不出现滚动条 */
+.formula { overflow: visible !important; padding: 8px 14px; }
+.formula math { display: block; max-width: 100%; margin: 2px 0; }
+.formula math + math { margin-top: 6px; }
+.fm { margin: 10px 0 14px; }
+/* 期刊式显示公式：公式居中，编号右对齐 */
+/* 左右两栏等宽，公式始终在正中；编号放在右栏 */
+.eqn { display: grid; grid-template-columns: minmax(2.6em, 1fr) minmax(0, auto) minmax(2.6em, 1fr); align-items: center; }
+.eqn-m { grid-column: 2; min-width: 0; text-align: center; }
+.eqn-m math { display: block; margin: 3px auto; }
+/* 所有显示公式（理论页、构造说明、合成推导、例题解析）居中 */
+math[display="block"] { display: block math; text-align: center; margin-left: auto; margin-right: auto; }
+.formula, .cap-m { text-align: center; }
+.eqn-n { grid-column: 3; justify-self: end; font-family: "Times New Roman", serif; font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.formula math, .cap-m math, .where math { font-family: var(--math-font); }
+.fm .where { margin: 2px 2px 0; font-size: 13px; color: var(--ink-2); }
+.fm .where > summary { font-size: 12.5px; font-weight: 400; color: var(--accent-2); }
+.fm .where ul { margin: 4px 0 0; padding-left: 18px; line-height: 1.65; }
+.fm .where li { margin: 2px 0; }
+.tsec details.tip p { color: var(--ink-2); }
+.tbl td details.tip { margin: 2px 0 0; }
+.where math, .tsec li math, .tsec p math, .tbl math { font-size: 1em; }
+.tsec { margin: 8px 0 30px; }
+.tsec > h2 { display: flex; align-items: center; gap: 10px; font-size: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.tn { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--accent); color: #fff; font-size: 15px; }
+.tsec h3 { margin-top: 18px; }
+.tsec li { line-height: 1.75; }
+details.base { border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; margin: 12px 0; background: var(--surface-2); }
+details.base > summary { padding: 2px 0; }
+.tfig { margin: 6px 0 14px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: #fff; text-align: center; }
+.tfig svg.fig { width: 100%; max-width: 520px; height: auto; font-family: "Times New Roman", "Microsoft YaHei", serif; }
+.tfig figcaption { font-size: 12.5px; color: var(--muted); margin-top: 4px; text-align: left; }
+.tbl { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13.5px; }
+.tbl th, .tbl td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+.tbl th { background: var(--surface-2); font-weight: 600; }
+.tstages { padding-left: 20px; }
+.tstages > li { margin: 10px 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.tstages p { margin: 3px 0; font-size: 13.5px; color: var(--ink-2); }
+.tstages i { font-style: normal; color: var(--muted); }
+.tp-toc { list-style: none; padding: 0; margin: 0 0 14px; }
+.tp-toc li { margin: 4px 0; }
+.tp-toc .link { font-size: 14px; padding: 4px 0; }
+.cap-note { font-size: 12.5px; opacity: .8; margin: 4px 0 0; }
+.cap-m { overflow: visible; }
+.cap-m math { display: block; margin: 2px 0; }
+
+/* 简短说明：默认收起；说明条中的小表格 */
+details.tip { margin: 4px 0; font-size: 12.5px; color: var(--muted); }
+details.tip > summary { font-weight: 400; color: var(--accent-2); font-size: 12px; }
+details.tip p { margin: 4px 0; }
+.cap-tbl { border-collapse: collapse; margin: 4px 0; font-size: 12.5px; }
+.cap-tbl th, .cap-tbl td { border: 1px solid rgba(255,255,255,.18); padding: 2px 7px; text-align: center; }
+.stage[data-theme="light"] .cap-tbl th, .stage[data-theme="light"] .cap-tbl td { border-color: var(--line); }
+.cap-tbl th { font-weight: 600; opacity: .85; }
+.cap-opts .skip { background: none !important; border: 0 !important; text-decoration: underline; opacity: .7; }
+.caption { max-height: 46%; overflow: auto; }
+
+/* 标注字号缩放与标注点 */
+.labels { --lbl: 1; }
+.labels .lbl { font-size: calc(12.5px * var(--lbl)); }
+.labels .lbl.lv, .labels .lbl.ang, .labels .lbl.pt { font-size: calc(11.5px * var(--lbl)); }
+.labels .lbl sub { font-size: 75%; }
+.labels[data-theme="dark"] .lbl.note { color: #F5D491; font-weight: 600; } .labels[data-theme="light"] .lbl.note { color: #8A6D00; font-weight: 600; }
+.colors { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin: 4px 0; }
+.color { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); }
+.color input { width: 28px; height: 22px; padding: 0; border: 1px solid var(--line); border-radius: 5px; background: none; }
+.note-dot { width: 8px; height: 8px; border-radius: 2px; background: #c9a227; transform: rotate(45deg); display: inline-block; margin-right: 2px; }
+.hud-wiz { display: block; width: 100%; margin-top: 6px; border: 1px solid rgba(245,212,145,.45); background: rgba(245,212,145,.12); color: inherit; border-radius: 8px; padding: 4px 8px; font-size: 12.5px; text-align: left; }
+.stage[data-theme="light"] .hud-wiz { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-2); }
+.hud-wiz[hidden] { display: none; }
+
+/* 解析场模型：子模型标签页 */
+.th-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.th-tab { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: 13.5px; cursor: pointer; }
+.th-tab b { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font: 700 11px "Times New Roman", serif; }
+.th-tab:hover { border-color: var(--accent); color: var(--accent-2); }
+.th-tab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.th-tab.on b { background: rgba(255,255,255,.25); }
+
+/* 右栏：内容较多时在栏内滚动，阅读进度条位于栏顶部 */
+.tp-side { max-height: calc(100vh - 150px); overflow-y: auto; overscroll-behavior: contain; }
+/* 模型预览：可拖动旋转的示意图与符号图例 */
+.pv { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.pv h2 { margin-bottom: 8px; }
+.pv-fig { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #fff; cursor: grab; touch-action: none; user-select: none; }
+.pv-fig.drag { cursor: grabbing; }
+.pv-fig:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 缩放图层：以中心为原点缩放；放大后在框内裁切，不撑开侧栏 */
+.pv-layer { transform-origin: 50% 50%; transition: transform .18s var(--ease-out, ease-out); will-change: transform; }
+.pv-fig.drag .pv-layer { transition: none; }
+.pv-fig svg.fig { display: block; width: 100%; height: auto; font-family: "Times New Roman", "Microsoft YaHei", serif; }
+/* 标注：白色描边让文字与背景线条区分，并保持清晰 */
+.pv-fig .fl { paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.pv-tools { display: flex; align-items: center; gap: 4px; margin: 6px 0 0; }
+.pv-tools .btn.mini { min-width: 28px; padding: 2px 8px; }
+.pv-tools .btn.mini:last-child { margin-left: auto; }
+.pv-zl { min-width: 3.4em; text-align: center; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+/* 放大查看：预览在页面中央以大尺寸显示，Esc 或“收起”退出 */
+.pv.pv-big { position: fixed; z-index: 60; inset: 4vh 50% auto auto; transform: translateX(50%); width: min(820px, 94vw); max-height: 92vh; overflow: auto; margin: 0; padding: 16px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 0 0 100vmax rgba(8,14,26,.45), var(--shadow-lg); }
+.pv.pv-big .pv-fig { max-width: 760px; margin: 0 auto; }
+.pv-tip { font-size: 12px; color: var(--muted); margin: 6px 0 4px; }
+.pv-tip:empty { display: none; }
+.pv-leg { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.pv-leg li { padding: 1px 8px; border: 1px solid var(--line); border-radius: 999px; cursor: pointer; background: var(--surface); }
+.pv-leg li:hover, .pv-leg li.hl, .pv-leg li:focus-visible { background: #FFF1D1; border-color: #E69F00; outline: none; }
+.pv-s { font-family: var(--math-font); font-size: 14px; }
+.pv-desc { min-height: 3.1em; margin: 6px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
+.pv-desc math { font-size: 1em; }
+/* 高亮：图中元素加粗变色，公式中的符号加底色 */
+svg.fig .fe, svg.fig .fl { transition: opacity .15s; }
+svg.fig .fe.hl polyline, svg.fig .fe.hl line { stroke-width: 3 !important; stroke: #E69F00 !important; }
+svg.fig .fe.hl polygon { fill: #E69F00; }
+svg.fig .fe.hl circle, svg.fig circle.fe.hl { stroke: #E69F00; stroke-width: 3; }
+svg.fig .fl.hl { fill: #B35C00; font-weight: 700; }
+#theoryBody math [data-mk] { cursor: pointer; }
+#theoryBody math [data-mk].hl { background: #FFE7B3; border-radius: 3px; color: #8A4B00; }

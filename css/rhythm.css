@@ -1,0 +1,67 @@
+/* 间距与排版节奏：统一按 4 px 网格排布。
+   控件与它的标签贴近（4 px），控件之间留 10 px，说明文字与它所说明的按钮之间留 8 px，分组之间留 16 px；
+   完整句子的说明用较宽的行距，便于阅读 */
+:root { --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --lh-text: 1.7; }
+
+/* 工具面板 */
+.panel { padding: var(--s1) var(--s4) 24px; }
+.grp { padding: var(--s3) 0 var(--s4); }
+.grp h4 { margin-bottom: var(--s2); }
+.ctl { margin: 0 0 10px; }
+.ctl:last-child { margin-bottom: 0; }
+.ctl label { margin-bottom: var(--s1); line-height: 1.45; }
+.chk { margin: 0 0 var(--s2); align-items: flex-start; line-height: 1.5; }
+.chk input { flex: none; margin-top: 2px; }
+.chk:last-child { margin-bottom: 0; }
+.note, .panel .note { line-height: 1.6; margin: var(--s2) 0; }
+.grp > .note:last-child { margin-bottom: 0; }
+.btns { gap: var(--s2); margin: var(--s3) 0 var(--s2); }
+.btns:first-child { margin-top: 0; }
+.grp > .btn { margin: var(--s1) 0 var(--s2); }
+.note + .btns, .btns + .note { margin-top: var(--s2); }
+table.src { margin: var(--s1) 0 var(--s2); }
+.place .row, .row.wrap { gap: 6px; }
+details.tip { margin: var(--s2) 0; }
+details.tip p { line-height: var(--lh-text); }
+
+/* 按钮：字距与内边距统一，按钮内文字不换行 */
+.btn { padding: 6px 12px; line-height: 1.4; }
+.btns > .btn { white-space: nowrap; }
+.cap-opts .btn { white-space: normal; text-align: left; }
+.btn.mini { padding: 2px 9px; }
+.btn.big { padding: 10px 18px; }
+
+/* 探究阶段与引导 */
+.insp-t { margin-bottom: var(--s2); }
+.stepper { margin-bottom: var(--s4); }
+.qbox { padding: var(--s3) 14px; margin-bottom: var(--s4); }
+.qbox p { line-height: 1.55; margin-top: var(--s1); }
+.g-item { margin: 0 0 14px; }
+.g-item h3 { margin-bottom: var(--s1); }
+.g-item p { line-height: var(--lh-text); }
+#stageActions:not(:empty) { margin: var(--s4) 0; }
+.acc > summary { padding: 10px 14px; }
+.acc > :not(summary) { margin: 0 14px; }
+.acc > :last-child { margin-bottom: 14px; }
+.acc .btns { margin: var(--s3) 14px var(--s1); }
+
+/* 画板中的构造说明与选项 */
+.cap-t { line-height: 1.65; margin: 6px 0; }
+.cap-q { margin: 10px 0 var(--s2); line-height: 1.55; }
+.cap-opts { gap: var(--s2); }
+.cap-fb { margin: var(--s2) 0; line-height: 1.6; }
+.cap-nav { margin-top: 10px; }
+
+/* 理论页正文 */
+.theory .lead, .tsec p, .tsec li { line-height: 1.8; }
+.tsec > h3 { margin: 22px 0 var(--s2); }
+.fm { margin: var(--s3) 0 var(--s4); }
+.fm .where ul { line-height: 1.75; }
+/* 链接按钮与按钮外观一致 */
+.btn.big { display: block; width: 100%; text-align: center; }
+a.btn { display: inline-block; text-decoration: none; text-align: center; box-sizing: border-box; }
+/* 理论页侧栏：“探究”区块，两个入口并排、等宽 */
+.tp-go { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--line); }
+.tp-go h2 { margin-bottom: var(--s2); }
+.tp-go-btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+.tp-go-btns .btn { padding: 9px 8px; font-size: 14.5px; }

@@ -1,0 +1,90 @@
+/* 动效与视觉润色：工作区交叉淡入、滚动淡入、折叠面板、按压波纹、阅读进度、玻璃质感的浮层
+   所有动效在“减少动态效果”时由 base.css 末尾的规则关闭 */
+:root { --ease-out: cubic-bezier(.16,1,.3,1); --spring: cubic-bezier(.34,1.4,.64,1); --glass: rgba(14,22,38,.62); }
+
+/* 工作区切换：View Transitions 交叉淡入，画板区域单独过渡，顶栏保持不动 */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .32s; animation-timing-function: var(--ease-out); }
+::view-transition-old(root) { animation-name: vt-out; }
+::view-transition-new(root) { animation-name: vt-in; }
+.appbar { view-transition-name: appbar; }
+::view-transition-old(appbar), ::view-transition-new(appbar) { animation: none; }
+@keyframes vt-out { to { opacity: 0; transform: scale(.992); filter: blur(2px); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(8px) scale(1.004); } }
+
+/* 滚动进入时淡入上浮 */
+.rv { opacity: 0; transform: translateY(14px); transition: opacity .6s var(--ease-out) var(--d, 0ms), transform .6s var(--ease-out) var(--d, 0ms); }
+.rv.in { opacity: 1; transform: none; }
+
+/* 按压波纹 */
+.has-ripple { overflow: hidden; isolation: isolate; }
+.ripple { position: absolute; border-radius: 50%; pointer-events: none; background: currentColor; opacity: .18; transform: scale(0); animation: ripple .55s var(--ease-out) forwards; z-index: -1; }
+@keyframes ripple { to { transform: scale(1); opacity: 0; } }
+
+/* 按钮：悬停轻微抬起，主按钮带柔和光晕 */
+.btn { transition: background .18s, border-color .18s, color .18s, transform .18s var(--ease-out), box-shadow .22s var(--ease-out); }
+.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,28,48,.08); }
+.btn:active:not(:disabled) { transform: translateY(0) scale(.98); transition-duration: .06s; }
+.btn.primary { background: linear-gradient(180deg, #4a62e0, var(--accent)); }
+.btn.primary:hover:not(:disabled) { background: linear-gradient(180deg, #4259d6, var(--accent-2)); box-shadow: 0 6px 18px rgba(61,85,209,.32); }
+
+/* 折叠面板：箭头旋转，展开后内容淡入 */
+details.tip > summary, details.where > summary, details.base > summary, details.g-item > summary { list-style: none; display: flex; align-items: center; gap: 6px; }
+details.tip > summary::-webkit-details-marker, details.where > summary::-webkit-details-marker, details.base > summary::-webkit-details-marker, details.g-item > summary::-webkit-details-marker { display: none; }
+details.tip > summary::before, details.where > summary::before, details.base > summary::before, details.g-item > summary::before {
+  content: ""; flex: none; width: 6px; height: 6px; border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor; transform: rotate(-45deg); opacity: .6; transition: transform .28s var(--ease-out); margin: 0 3px 0 1px; }
+details[open].tip > summary::before, details[open].where > summary::before, details[open].base > summary::before, details[open].g-item > summary::before { transform: rotate(45deg) translate(-1px, -1px); }
+.acc > summary::after { transition: transform .3s var(--ease-out); }
+details[open].acc > :not(summary), details[open].base > :not(summary), details[open].g-item > :not(summary) { animation: fadeUp .35s var(--ease-out) both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(4px); } }
+
+/* 工作区模式指示：弹性滑动 */
+.mode-ink { transition: transform .45s var(--spring), width .45s var(--spring); }
+
+/* 检查器与工具面板：分组卡片依次淡入 */
+.insp > *, .panel > * { animation: fadeUp .4s var(--ease-out) both; }
+.insp > :nth-child(2), .panel > :nth-child(2) { animation-delay: 40ms; }
+.insp > :nth-child(3), .panel > :nth-child(3) { animation-delay: 80ms; }
+.insp > :nth-child(4), .panel > :nth-child(4) { animation-delay: 120ms; }
+.insp > :nth-child(n+5), .panel > :nth-child(n+5) { animation-delay: 160ms; }
+.acc { transition: box-shadow .25s var(--ease-out), border-color .25s; }
+.acc:hover { box-shadow: 0 4px 16px rgba(16,28,48,.06); }
+
+/* 画板：四周暗角，让三维模型更聚焦；浮层用玻璃质感 */
+.stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: radial-gradient(120% 90% at 50% 45%, transparent 60%, rgba(0,0,0,.22) 100%); z-index: 1; }
+.stage[data-theme="light"]::after { background: radial-gradient(120% 90% at 50% 45%, transparent 65%, rgba(20,32,51,.06) 100%); }
+.stage > .hud, .stage > .tools, .stage > .legend, .stage > .caption, .stage > .stagebar, .stage > .labels, .stage > .busy, .stage > .present-exit { z-index: 2; }
+.stage[data-theme="dark"] .hud, .stage[data-theme="dark"] .stagebar, .stage[data-theme="dark"] .tools, .stage[data-theme="dark"] .caption { backdrop-filter: blur(10px) saturate(1.2); -webkit-backdrop-filter: blur(10px) saturate(1.2); }
+.tools button { transition: background .18s, color .18s, transform .18s var(--ease-out); }
+.tools button:hover { transform: translateY(-1px); }
+.caption:not([hidden]) { animation: fadeUp .35s var(--ease-out); }
+
+/* 理论页：阅读进度条、目录当前节高亮、公式卡片 */
+.tp-progress { position: relative; height: 3px; margin: -6px 0 14px; border-radius: 2px; overflow: hidden; background: var(--line); }
+.tp-progress i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), #6f86ff); transform-origin: left; transform: scaleX(0); border-radius: 0 2px 2px 0; }
+.tp-toc .link { position: relative; padding-left: 12px; color: var(--ink-2); transition: color .2s; }
+.tp-toc .link::before { content: ""; position: absolute; left: 0; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 50%; background: var(--line-2); transition: background .2s, transform .25s var(--spring); }
+.tp-toc .link.cur { color: var(--accent-2); font-weight: 600; }
+.tp-toc .link.cur::before { background: var(--accent); transform: scale(1.8); }
+.tp-main h1 { background: linear-gradient(90deg, var(--ink), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.formula { transition: border-color .2s, box-shadow .25s var(--ease-out); background: linear-gradient(180deg, #fbfcfe, var(--surface-2)); }
+.formula:hover { border-color: var(--line-2); box-shadow: 0 3px 12px rgba(16,28,48,.05); }
+.tsec > h2 .tn { box-shadow: 0 4px 12px rgba(61,85,209,.3); background: linear-gradient(160deg, #5a70ea, var(--accent-2)); }
+.tfig { transition: box-shadow .25s var(--ease-out); }
+.tfig:hover { box-shadow: 0 8px 26px rgba(16,28,48,.08); }
+
+/* 首页：卡片入场与悬停光斑 */
+.card-link::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 0%), rgba(61,85,209,.08), transparent 60%); opacity: 0; transition: opacity .3s; }
+.card-link:hover::before { opacity: 1; }
+.home-hero h1, .home-hero p, .home-hero .btn { animation: rise .7s var(--ease-out) both; }
+.home-hero p { animation-delay: .08s; } .home-hero .btn { animation-delay: .16s; } .home-hero .btn.hero-2 { animation-delay: .22s; }
+
+/* 滚动条：细且低对比 */
+* { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rv { opacity: 1; transform: none; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}

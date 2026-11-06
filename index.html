@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>静电学实验室</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/motion.css">
+  <link rel="stylesheet" href="css/fit.css">
+  <link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+  <header class="home-hero">
+    <canvas id="hero" aria-hidden="true"></canvas>
+    <div class="hero-in">
+      <h1>静电学实验室</h1>
+      <p>三维静电场的交互探究平台。每个模型按理论、探究、分析、记录展开；场强合成向导把三维矢量合成化为平面作图。可离线使用。</p>
+      <a class="btn primary" href="lab.html?m=1">从模型 01 开始 →</a>
+      <a class="btn hero-2" href="examples.html">例题探究 →</a>
+    </div>
+  </header>
+  <main class="home">
+    <div id="groups"></div>
+    <section id="kg" class="kg" aria-labelledby="kg-h">
+      <div class="kg-head">
+        <h2 id="kg-h" class="cat">知识图谱</h2>
+        <div class="kg-tools">
+          <button type="button" class="btn mini" data-kg="more">展开下一层</button>
+          <button type="button" class="btn mini" data-kg="reset">全部收起</button>
+        </div>
+      </div>
+      <div class="kg-body">
+        <canvas tabindex="0" role="img" aria-label="静电场知识图谱的立体视图。方向键旋转，加号、减号缩放；用右侧列表展开节点。"></canvas>
+        <nav class="kg-side" aria-label="知识图谱列表">
+          <p class="kg-tip">点击节点逐层展开，点击模型打开实验室。拖动旋转，滚轮缩放。</p>
+          <ul class="kg-list"></ul>
+        </nav>
+      </div>
+    </section>
+  </main>
+  <script src="js/home/home.js"></script>
+  <script src="js/home/kgraph.js"></script>
+</body>
+</html>

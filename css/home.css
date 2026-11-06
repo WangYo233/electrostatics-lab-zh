@@ -1,0 +1,44 @@
+/* 首页（覆盖 base.css 中的首页段） */
+/* 需求 2：取消负的上外边距，分类标题和卡片不再压在深色首屏上 */
+.home { margin: 0 auto; padding: 8px 24px 40px; }
+.home .cat { margin: 26px 0 10px; color: var(--ink-2); }
+.card-link { padding: 14px 40px 14px 16px; }
+.card-link h2 { margin: 4px 0 0; }
+
+/* 知识图谱 */
+.kg { margin-top: 30px; }
+.kg-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.kg-head .cat { margin-bottom: 10px; }
+.kg-tools { display: flex; gap: 6px; margin-bottom: 8px; }
+.kg-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); background: var(--surface); }
+.kg-body canvas { display: block; width: 100%; height: 480px; background: radial-gradient(110% 100% at 50% 45%, #16233a 0%, #0b1220 65%, #070c16 100%); cursor: grab; touch-action: none; }
+.kg-body canvas:active { cursor: grabbing; }
+.kg-body canvas:focus-visible { outline: 3px solid #8ea0ff; outline-offset: -3px; }
+.kg-side { border-left: 1px solid var(--line); padding: 12px 12px 14px; max-height: 480px; overflow: auto; }
+.kg-tip { color: var(--muted); font-size: 12.5px; margin: 0 0 8px; }
+.kg-list, .kg-list ul { list-style: none; margin: 0; padding: 0; }
+.kg-list ul { padding-left: 14px; border-left: 1px solid var(--line); margin-left: 6px; }
+.kg-i { display: inline-block; border: 0; background: none; padding: 3px 4px; text-align: left; color: var(--ink); border-radius: 5px; font-size: 13px; line-height: 1.4; text-decoration: none; }
+.kg-i:hover { background: var(--accent-soft); color: var(--accent-2); }
+button.kg-i[aria-expanded]::before { content: "▸"; display: inline-block; width: 1em; color: var(--muted); transition: transform .2s var(--ease); }
+button.kg-i[aria-expanded="true"]::before { transform: rotate(90deg); }
+.kg-i.l0 { font-weight: 700; font-size: 14px; }
+.kg-i.l1 { font-weight: 600; color: #a34700; }   /* 分支：深橙，白底对比度大于 4.5 */
+.kg-i.l2 { color: #005a8c; }                      /* 概念：深蓝 */
+a.kg-i.l3 { color: var(--accent-2); }             /* 模型：链接色 */
+
+@media (max-width: 760px) {
+  .home { padding: 4px 14px 32px; }
+  .kg-body { grid-template-columns: 1fr; }
+  .kg-body canvas { height: 380px; }
+  .kg-side { border-left: 0; border-top: 1px solid var(--line); max-height: none; }
+}
+@media (max-width: 420px) {
+  .home-hero { height: auto; padding-bottom: 28px; }
+  .home-hero .hero-in { padding-top: 40px; }
+  .home-hero h1 { font-size: 28px; }
+  .kg-body canvas { height: 320px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  button.kg-i[aria-expanded]::before { transition: none; }
+}

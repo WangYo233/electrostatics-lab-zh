@@ -1,0 +1,59 @@
+/* 教学过程：画板说明条（构造步骤与预测题）、步骤概览、教学提示、课堂演示模式 */
+.caption { position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%); width: min(720px, calc(100% - 290px)); border-radius: 12px; padding: 10px 14px 8px; font-size: 13.5px; animation: capIn .35s var(--ease); }
+.caption[hidden] { display: none; }
+@keyframes capIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } }
+.cap-h { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+.cap-h b { font-size: 14.5px; }
+.cap-n { font: 700 11px "Times New Roman", sans-serif; letter-spacing: .1em; padding: 2px 7px; border-radius: 10px; background: rgba(240,228,66,.18); color: #F5D491; }
+.stage[data-theme="light"] .cap-n { background: var(--accent-soft); color: var(--accent-2); }
+.cap-q { font-weight: 600; margin: 6px 0; }
+.cap-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.cap-opts .btn { background: rgba(255,255,255,.08); color: inherit; border-color: rgba(255,255,255,.22); }
+.stage[data-theme="light"] .cap-opts .btn { background: var(--surface); border-color: var(--line-2); }
+.cap-opts .btn:hover { border-color: #F5D491; color: inherit; }
+.cap-skip { margin-top: 4px; } .cap-skip .btn { background: none; border: 0; color: inherit; opacity: .65; padding: 0; text-decoration: underline; }
+.cap-t { margin: 4px 0; opacity: .92; }
+.cap-fb { margin: 4px 0; padding: 4px 8px; border-radius: 6px; font-size: 13px; animation: pop .25s var(--ease); }
+.cap-fb.ok { background: rgba(0,158,115,.18); } .cap-fb.bad { background: rgba(213,94,0,.2); } .cap-fb.skip { background: rgba(255,255,255,.08); }
+.stage[data-theme="light"] .cap-fb.skip { background: var(--surface-2); }
+.cap-m { padding: 2px 0; }
+.cap-m math { font-size: 1.05em; }
+.cap-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.cap-nav .btn { background: rgba(255,255,255,.08); color: inherit; border-color: rgba(255,255,255,.18); }
+.cap-nav .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.stage[data-theme="light"] .cap-nav .btn:not(.primary) { background: var(--surface); border-color: var(--line-2); }
+.cap-dots { display: flex; gap: 5px; }
+.cap-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.25); transition: .25s var(--ease); }
+.cap-dots i.done { background: rgba(255,255,255,.6); } .cap-dots i.on { background: #F5D491; width: 18px; border-radius: 4px; }
+.stage[data-theme="light"] .cap-dots i { background: var(--line-2); } .stage[data-theme="light"] .cap-dots i.on { background: var(--accent); }
+.legend { bottom: auto; top: 12px; left: auto; right: 58px; max-width: 46%; justify-content: flex-end; }
+
+.labels .lbl.ang { font-weight: 600; }
+.labels[data-theme="dark"] .lbl.ang { color: #F5D491; } .labels[data-theme="light"] .lbl.ang { color: #8A6D00; }
+
+
+.steplist { list-style: none; margin: 0; padding: 0 0 6px; }
+.steplist button { width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 6px; border-radius: 6px; text-align: left; font-size: 13px; color: var(--ink-2); }
+.steplist button:hover { background: var(--surface-2); }
+.steplist .n { flex: 0 0 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; font: 700 11px "Times New Roman", serif; background: var(--surface-2); color: var(--muted); }
+.steplist li.on button { background: var(--accent-soft); color: var(--accent-2); font-weight: 600; } .steplist li.on .n { background: var(--accent); color: #fff; }
+.steplist li.done .n { background: var(--accent-soft); color: var(--accent-2); }
+.steplist em { margin-left: auto; font-style: normal; font-size: 12px; font-weight: 700; } .steplist em.q { color: var(--muted); } .steplist em.ok { color: var(--ok); } .steplist em.bad { color: var(--pos); }
+.teacher { background: #f4f6fd; border: 1px dashed #c3cdf3; border-radius: 8px; padding: 6px 10px; }
+.teacher summary { color: var(--accent-2); }
+.der { margin: 6px 0; } .der b { font-size: 12.5px; color: var(--ink-2); }
+
+.present-btn { border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.07); color: var(--chrome-ink); border-radius: 7px; padding: 5px 11px; }
+.present-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
+.present-exit { display: none; position: absolute; top: 12px; left: 50%; transform: translateX(-50%); border: 0; border-radius: 16px; padding: 5px 14px; background: rgba(14,22,38,.7); color: #fff; font-size: 12.5px; }
+body.present .work { grid-template-columns: 0 0 minmax(0, 1fr) 0 !important; }
+body.present .rail, body.present .drawer, body.present .inspector { visibility: hidden; }
+body.present .appbar { display: none; }
+body.present .view { padding: 0; }
+body.present .stage { border-radius: 0; }
+body.present .present-exit { display: block; }
+body.present .caption { width: min(900px, calc(100% - 120px)); font-size: 16px; bottom: 70px; }
+body.present .caption .cap-h b { font-size: 18px; }
+body.present .labels { --lbl: 1.25; }
+body.present .hud { font-size: 14px; width: 270px; }
+@media (max-width: 900px) { .caption { width: calc(100% - 24px); bottom: 62px; } .legend { display: none; } }
