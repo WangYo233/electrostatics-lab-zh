@@ -3,6 +3,7 @@
 (function (EL) {
   const U = EL.U, h = U.h, K = EL.UI, X = EL.EX, W = X.W, V = EL.V, VA = EL.VA;
   const S = X.S = { pb: null, sol: null, qi: -1, step: 0, ans: {}, path: 0.3, res: {}, empty: null, pathPlaying: false, pathRaf: 0 };
+  X.stopPath = function () { S.pathPlaying = false; if (S.pathRaf) cancelAnimationFrame(S.pathRaf); S.pathRaf = 0; };
 
   X.renderList = function () {
     const mine = U.store.get('ex:mine', []), item = (pb, tag) => h('button', { type: 'button', class: 'ex-item' + (S.pb && S.pb.id === pb.id ? ' on' : ''), onclick: () => X.open(pb) },
@@ -11,6 +12,7 @@
       h('h3', null, '我的题目'), ...(mine.filter(X.valid).length ? mine.filter(X.valid).map(pb => item(pb)) : [h('p.note', null, '在“题目添加”中保存的题目会出现在这里。')]));
   };
   X.open = function (pb) {
+    X.stopPath();
     S.pb = pb; S.sol = X.solve(pb); S.qi = -1; S.step = 0; S.ans = {}; S.res = {}; S.empty = null;
     X.renderList(); X.renderProblem(); W.r.cam.reset(W.AD * 1.2, false, true); X.focus(null);
   };
@@ -59,7 +61,7 @@
 
   // 引导探究：场强题走三维合成步骤；路径题拖动观察；电势题列出各项；解析场显示观察点的读数；圆盘显示电荷对
   X.guide = function (i) {
-    if (S.pathRaf) cancelAnimationFrame(S.pathRaf); S.pathRaf = 0; S.pathPlaying = false;
+    X.stopPath();
     const o = S.sol.ans[i], R = S.sol.R;
     S.qi = i; S.step = 0; S.ans = {};
     if (o.focus === 'pairs') X.focus({ kind: 'pairs' });
@@ -119,7 +121,7 @@
     const box = U.$('#caption'), f = S.f;
     if (!f || !S.pb) { box.hidden = true; return; }
     box.hidden = false;
-    const R = S.sol.R, u = R.units, o = S.sol.ans[S.qi], close = K.btn('退出探究', () => { S.pathPlaying = false; cancelAnimationFrame(S.pathRaf); S.pathRaf = 0; S.qi = -1; X.focus(null); X.renderProblem(); W.r.cam.reset(W.AD * 1.2, false, true); }, 'mini');
+    const R = S.sol.R, u = R.units, o = S.sol.ans[S.qi], close = K.btn('退出探究', () => { X.stopPath(); S.qi = -1; X.focus(null); X.renderProblem(); W.r.cam.reset(W.AD * 1.2, false, true); }, 'mini');
     if (f.kind === 'plan') {
       const st = o.plan[S.step], ans = S.ans[S.step], n = o.plan.length, kids = [h('div.cap-h', null, h('span.cap-n', null, '三维合成 ' + (S.step + 1) + ' / ' + n), h('b', { html: U.rich(st.title) }))];
       if (st.ask && ans == null) kids.push(h('p.cap-q', { html: '先预测：' + U.rich(st.ask.q) }), h('div.cap-opts', null, st.ask.options.map((v, j) => { const b = K.btn('', () => { S.ans[S.step] = v; X.focusStep(); }); b.innerHTML = '<b class="opt-l">' + X.letter(j) + '.</b> ' + U.rich(v); return b; }), K.btn('跳过预测', () => { S.ans[S.step] = ''; X.focusStep(); }, 'mini skip')));
