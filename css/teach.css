@@ -1,5 +1,7 @@
 /* 教学过程：画板说明条（构造步骤与预测题）、步骤概览、教学提示、课堂演示模式 */
-.caption { position: absolute; left: 14px; bottom: 64px; transform: none; width: min(520px, calc(100% - 80px)); max-height: 38%; overflow: auto; border-radius: 12px; padding: 10px 14px 8px; font-size: 13.5px; animation: capIn .35s var(--ease); }
+.caption { position: relative; inset: auto; transform: none; flex: none; width: 100%; max-height: 25vh; overflow: auto; border-radius: 10px; padding: 10px 14px 8px; font-size: 13.5px; animation: capIn .35s var(--ease); }
+body.lab .view > .caption { max-height: 25vh; }
+body.lab .view > .caption[data-theme="light"] { color: var(--ink); background: rgba(255,255,255,.94); border-color: var(--line); }
 .caption input, .caption select { color: #172033 !important; background: #fff !important; }
 .caption[hidden] { display: none; }
 @keyframes capIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } }
@@ -53,8 +55,8 @@ body.present .appbar { display: none; }
 body.present .view { padding: 0; }
 body.present .stage { border-radius: 0; }
 body.present .present-exit { display: block; }
-body.present .caption { width: min(900px, calc(100% - 120px)); max-height: 38%; font-size: 16px; bottom: 70px; }
+body.present .caption { width: 100%; max-height: 25vh; font-size: 16px; }
 body.present .caption .cap-h b { font-size: 18px; }
 body.present .labels { --lbl: 1.25; }
 body.present .hud { font-size: 14px; width: 270px; }
-@media (max-width: 900px) { .caption { left: 12px; width: min(520px, calc(100% - 24px)); max-height: 42%; bottom: 62px; } .legend { display: none; } }
+@media (max-width: 900px) { .caption { width: 100%; max-height: 28vh; } .legend { display: none; } }

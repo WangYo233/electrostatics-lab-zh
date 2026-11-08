@@ -5,6 +5,14 @@ body.ex .ex-title { color: var(--chrome-muted); font-size: 13px; letter-spacing:
 .ex-left { border-right: 1px solid var(--line); } .ex-right { border-left: 1px solid var(--line); }
 body[data-exmode="student"] .ex-only-t, body[data-exmode="teacher"] .ex-only-s { display: none; }
 body.ex .stage .stagebar { left: 12px; right: auto; width: auto; }
+.ex .view { overflow: hidden; }
+.ex .caption { max-height: 28vh; color: var(--chrome-ink); background: rgba(14,22,38,.88); border: 1px solid rgba(255,255,255,.16); }
+.ex .caption[data-theme="light"] { color: var(--ink); background: rgba(255,255,255,.94); border-color: var(--line); }
+.ex .caption input, .ex .caption select { color: #172033 !important; background: #fff !important; }
+.element-style { position: fixed; z-index: 100; width: 240px; max-width: calc(100vw - 16px); padding: 12px; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.28); color: var(--chrome-ink); background: rgba(14,22,38,.94); }
+.element-style[hidden] { display: none; }
+.element-style .ctl { margin: 8px 0; }
+.element-style input[type=color] { width: 40px; height: 28px; }
 .ex-list h3 { font-size: 11.5px; letter-spacing: .1em; color: var(--muted); margin: 12px 0 6px; }
 .ex-item { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 8px 10px; margin: 6px 0; transition: border-color .15s, background .15s; }
 .ex-item b { display: block; font-size: 13.5px; } .ex-item span { font-size: 12px; color: var(--muted); }

@@ -62,7 +62,7 @@ body.resizing .work, body.resizing .splitter { transition: none; }
 body[data-mode="theory"] .rail, body[data-mode="record"] .rail, body[data-mode="theory"] .drawer, body[data-mode="record"] .drawer, body[data-mode="theory"] .inspector { visibility: hidden; }
 body[data-mode="theory"] .stage { display: none; }
 body:not([data-mode="theory"]) .theory-page { display: none; }
-.view { min-width: 0; min-height: 0; position: relative; padding: 10px; display: flex; }
+.view { min-width: 0; min-height: 0; position: relative; padding: 10px; display: flex; flex-direction: column; }
 .insp { display: none; animation: fadeIn .3s var(--ease); }
 body[data-mode="explore"] .insp[data-for="explore"], body[data-mode="analyze"] .insp[data-for="analyze"], body[data-mode="record"] .insp[data-for="record"] { display: block; }
 body[data-mode="analyze"] .hud { display: none; }

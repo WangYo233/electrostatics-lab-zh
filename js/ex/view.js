@@ -6,7 +6,7 @@
   // 模型坐标 → 画板坐标：按题目的尺度（R.ext）缩放，使不同模型在画板中大小相近
   let SC = AD;
   const M = p => V.mul(p, SC);
-  const W = X.W = { AD, M, layers: { geom: true, sphere: true, lines: false, flow: false, labels: true }, cache: new Map() };
+  const W = X.W = { AD, M, layers: { geom: true, sphere: true, lines: false, flow: false, labels: true }, appearance: U.store.get('ex:appearance', {}), cache: new Map() };
   const cached = (k, f) => { if (!W.cache.has(k)) { if (W.cache.size > 40) W.cache.delete(W.cache.keys().next().value); W.cache.set(k, f()); } return W.cache.get(k); };
 
   W.init = function () {
@@ -21,6 +21,7 @@
     EL.setTheme(k); U.store.set('theme', k);
     const ov = U.store.get('colors:' + EL.theme, {}); for (const c in ov) EL.C[c] = U.hex(ov[c]);
     const s = U.$('#stage'); s.dataset.theme = EL.C.lbl; s.style.background = EL.C.bgCss;
+    U.$('#caption').dataset.theme = EL.C.lbl;
     s.querySelectorAll('.caption,.tools,.stagebar,.hud').forEach(e => e.classList.add('glass'));
     if (W.last) W.show(...W.last);
   };
@@ -70,8 +71,8 @@
     }
     const rr = AD * 0.05;
     for (const s of src) {
-      const col = s.q > 0 ? C.pos : C.neg;
-      out.spheres.push({ p: s.p, r: rr, color: col }); out.glows.push({ p: s.p, r: rr * 3, color: col, a: 0.45 });
+      const look = W.appearance[s.label] || {}, col = look.color ? U.hex(look.color) : s.q > 0 ? C.pos : C.neg, size = look.size || 1;
+      out.spheres.push({ p: s.p, r: rr * size, color: col }); if (W.r.fx.glow) out.glows.push({ p: s.p, r: rr * size * 3, color: col, a: 0.45 });
       if (L.labels) out.labels.push({ p: s.p, text: s.label + ' ' + X.qText(s.q).replace('+', '+ ').replace('−', '− '), cls: s.q > 0 ? 'pos' : 'neg' });
     }
     const focusedPts = f && f.kind === 'plan' ? new Set([f.plan.d.pn]) : f && f.kind === 'terms' ? new Set(f.at) : f && f.kind === 'path' ? new Set([f.a, f.b]) : f && f.kind === 'point' ? new Set([f.at]) : f && f.kind === 'probe' ? new Set(f.names || []) : null;

@@ -91,13 +91,15 @@
 
   A.sourceEditor = function (c) {
     const st = c.st, m = c.m, ed = m.editor;
+    const removeCharge = i => { A.ensureCustom(c); st.custom.splice(i, 1); st.custom.forEach((s, j) => { s.label = 'Q' + (j + 1); }); A.update(); A.renderPanel(); };
     const rows = c.sources.map((s, i) => {
       const cs = st.custom && st.custom[i];
       const edit = (fn) => { A.ensureCustom(c); fn(st.custom[i]); A.update(); A.renderPanel(); };
-      return h('tr', null, h('td', null, s.label),
+      return h('tr', { tabindex: '0', onkeydown: e => { if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeCharge(i); } } }, h('td', null, s.label),
         h('td', null, K.cell(s.q, 0.1, v => edit(x => { x.q = U.clamp(v, ed.qRange[0], ed.qRange[1]); }))),
         ...[0, 1, 2].map(k => h('td', null, cs && cs.bind ? h('span.muted', null, U.fmt(s.p[k], 3)) : K.cell(+s.p[k].toFixed(3), 0.1, v => edit(x => { x.p[k] = U.clamp(v, -ed.xyz, ed.xyz); x.bind = null; })))),
-        h('td', null, cs && cs.bind ? K.btn('解除绑定', () => edit(x => { x.p = s.p.slice(); x.bind = null; }), 'mini', '解除与背景特殊点的绑定，改为自由坐标') : null));
+        h('td', null, cs && cs.bind ? K.btn('解除绑定', () => edit(x => { x.p = s.p.slice(); x.bind = null; }), 'mini', '解除与背景特殊点的绑定，改为自由坐标') : null,
+          K.btn('删除', () => removeCharge(i), 'mini', '删除此电荷；也可聚焦此行后按 Delete')));
     });
     const kids = [h('table.src', null, h('thead', null, h('tr', null, ...['源电荷', 'q', 'x', 'y', 'z', ''].map(t => h('th', null, t)))), h('tbody', null, rows))];
     kids.push(h('p.note', null, st.custom || m.alwaysCustom ? '当前为自定义配置，最多放置 ' + ed.max + ' 个源电荷，可以在画板中拖动电荷。' : '当前为标准配置；修改任一电荷后，转为自定义配置。'));
@@ -144,8 +146,6 @@
     let nText = '';
     const nInput = h('input.cell', { type: 'text', placeholder: '标注文字，例如“场强最大处”', style: 'width:100%', oninput: e => { nText = e.target.value; } });
     return [
-      K.group('画板主题', h('div.swatches', null, sw('dark'), sw('light')),
-        K.tip('色盲友好配色：正为橙色“+”，负为蓝色“−”。浅色主题适合投影和打印。')),
       K.group('模型颜色', colors, h('div.btns', null, K.btn('恢复默认颜色', () => { U.store.del('colors:' + EL.theme); A.applyColors(); A.update(); A.renderPanel(); }, 'mini')),
         K.tip('修改只对当前主题生效。')),
       K.group('标注文字',

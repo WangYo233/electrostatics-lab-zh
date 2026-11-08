@@ -1,7 +1,7 @@
 ﻿'use strict';
 // 首页立体知识图谱（Canvas 2D，自行做三维旋转投影，无外部库）。
 // 从根节点“静电场”开始，点击节点逐层展开；拖动旋转，滚轮缩放；模型节点打开实验室或例题页。
-// 布局：每个可见节点占一行（树的先序），层级决定横向位置与纵深；默认视角下各行标签互不遮挡。
+// 每一级节点分布在球壳上，父子节点用直线连接。
 // 旁边的列表与图谱同步，可用 Tab 与 Enter 操作，是图谱的可访问替代。
 (function () {
   var M = {
@@ -54,10 +54,8 @@
   }
   var root = make(TREE, null, 0); root.a = 1;
   function visible(n) { for (var p = n.parent; p; p = p.parent) if (!p.open) return false; return true; }
-  // ---------- 布局（世界坐标以 CSS 像素计；z 为纵深） ----------
-  // 横向树：每层一列，列宽按该层最长标签实测；叶（含未展开的节点）各占一行，父节点在子节点的中间高度。
-  // 纵深：各层前后错开，行间也略有错开；拖动旋转时可以看到层次的立体排列。
-  var W = 0, H = 0, small = false, ROW = 30, colX = [];
+  // ---------- 布局（世界坐标以 CSS 像素计） ----------
+  var W = 0, H = 0, small = false;
   var FONT = { 0: 'bold 17px', 1: '600 14.5px', 2: '13.5px', 3: '13px' };
   var FAM = ' "Microsoft YaHei", "PingFang SC", sans-serif';
   function font(n) { return (small ? ['bold 15px', '600 13px', '12.5px', '12px'][n.level] : FONT[n.level]) + FAM; }
@@ -65,56 +63,29 @@
   function labelW(n) { g.font = font(n); return g.measureText(txt(n)).width + 14; }
   function layout() {
     var vis = nodes.filter(function (n) { return n === root || visible(n); });
-    var maxW = [0, 0, 0, 0]; vis.forEach(function (n) { maxW[n.level] = Math.max(maxW[n.level], labelW(n)); });
-    var gap = small ? 26 : 38, x = 0, deep = 0; colX = [];
-    vis.forEach(function (n) { deep = Math.max(deep, n.level); });
-    for (var L = 0; L < 4; L++) { colX[L] = x; x += 14 + maxW[L] + gap; }
-    var need = colX[deep] + 14 + maxW[deep] + 40;
-    // 画布放不下横向树时改为缩进式（每个节点一行，按层缩进），并按行数加高画布
-    outline = need > W * 0.97;
-    var slot = 0;
-    if (outline) {
-      vis.forEach(function (n) { n.row = 0; });
-      (function lay(n) { n.row = slot++; if (n.open) n.kids.forEach(lay); })(root);
-      ROW = small ? 29 : 30;
-      for (L = 0; L < 4; L++) colX[L] = L * (small ? 20 : 26);
-      var want = Math.max(baseH, Math.ceil(slot * ROW + 40)) + 'px';
-      if (cv.style.height !== want) cv.style.height = want;
-    } else {
-      if (cv.style.height) cv.style.height = '';
-      (function lay(n) {
-        if (n.open && n.kids.length) { n.kids.forEach(lay); n.row = (n.kids[0].row + n.kids[n.kids.length - 1].row) / 2; }
-        else n.row = slot++;
-      })(root);
-      ROW = Math.max(small ? 25 : 27, Math.min(46, (H - 44) / Math.max(1, slot)));
-    }
-    var mid = (slot - 1) / 2;
-    nodes.forEach(function (n) {
-      var row = n.row === undefined ? 0 : n.row;
-      // 深层略向前（z 为负），行间前后交错，表现立体层次；默认俯仰角为 0，同一行的节点仍在同一高度
-      // y 按纵深做透视补偿，使默认视角下各行等距、标签不叠压
-      var z = -30 * n.level + 12 * Math.sin(row * 1.9);
-      n.t = [colX[n.level], (mid - row) * ROW * (CAM + z) / CAM, z];
-    });
-    nodes.forEach(function (n) { if (!(n === root || visible(n))) delete n.row; });
-    var right = outline ? Math.max.apply(null, vis.map(function (n) { return colX[n.level] + labelW(n) + 14; })) : colX[deep] + 14 + maxW[deep];
-    ctrT = [(right - 16) / 2, 0, 0];
-    var radialStep = deep ? Math.max(34, Math.min((W - 150) * 0.46 / deep, (H - 64) * 0.46 / deep)) : 0;
+    var deep = 0, maxLabel = 0;
+    vis.forEach(function (n) { deep = Math.max(deep, n.level); maxLabel = Math.max(maxLabel, labelW(n)); });
+    // Leave room for the full sphere after any projection angle and for its labels.
+    var usable = Math.max(8, Math.min(W, H) * 0.5 - maxLabel - 28);
+    var radialStep = deep ? usable / (Math.SQRT2 * deep) : 0;
     nodes.forEach(function (n) { n.t = [0, 0, 0]; });
+    var golden = Math.PI * (3 - Math.sqrt(5));
     for (var level = 1; level <= deep; level++) {
-      var ring = vis.filter(function (n) { return n.level === level; });
-      ring.forEach(function (n, i) { var a = -Math.PI / 2 + 2 * Math.PI * i / ring.length; n.t = [radialStep * level * Math.cos(a), radialStep * level * Math.sin(a), 0]; });
+      var ring = vis.filter(function (n) { return n.level === level; }), count = ring.length;
+      ring.forEach(function (n, i) {
+        var z = 1 - 2 * (i + 0.5) / count, rho = Math.sqrt(Math.max(0, 1 - z * z)), a = golden * i;
+        n.t = [radialStep * level * rho * Math.cos(a), radialStep * level * rho * Math.sin(a), radialStep * level * z];
+      });
     }
-    outline = false; ctrT = [0, 0, 0];
+    ctrT = [0, 0, 0];
   }
 
   // ---------- 视图 ----------
-  var YAW0 = 0.2, PITCH0 = 0, CAM = 900, outline = false, baseH = 320;
+  var YAW0 = 0.2, PITCH0 = 0, CAM = 900;
   var yaw = YAW0, pitch = PITCH0, zoom = 1, hover = null, focusN = null, proj = [];
   var ctr = [0, 0, 0], ctrT = [0, 0, 0];
   function resize() {
     var dpr = window.devicePixelRatio || 1;
-    if (!cv.style.height) baseH = cv.clientHeight;
     W = cv.clientWidth; H = cv.clientHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     g.setTransform(dpr, 0, 0, dpr, 0, 0); small = W < 560;
     layout(); ctr = ctrT.slice(); kick();
@@ -137,9 +108,9 @@
     nodes.forEach(function (n) { if (n.a > 0.02) proj.push({ n: n, q: project(n.p) }); });
     proj.forEach(function (o) {
       var n = o.n; if (!n.parent) return;
-      var q2 = project(n.parent.p), mx = (q2.x + o.q.x) / 2;
+      var q2 = project(n.parent.p);
       g.strokeStyle = 'rgba(150,172,210,' + (0.55 * n.a) + ')'; g.lineWidth = n.level === 1 ? 1.6 : 1.2;
-      g.beginPath(); g.moveTo(q2.x, q2.y); g.bezierCurveTo(mx, q2.y, mx, o.q.y, o.q.x, o.q.y); g.stroke();
+      g.beginPath(); g.moveTo(q2.x, q2.y); g.lineTo(o.q.x, o.q.y); g.stroke();
     });
     proj.sort(function (a, b) { return b.q.z - a.q.z; });
     proj.forEach(function (o) {
@@ -152,12 +123,14 @@
       if (hot) { g.strokeStyle = '#ffffff'; g.lineWidth = 2; g.beginPath(); g.arc(q.x, q.y, r + 7, 0, 7); g.stroke(); }
       // 标签在节点右侧，深色底，文字 #eef3fa（对比度大于 12）
       var t = txt(n), th = n.level === 0 ? 24 : 21; g.font = font(n);
-      var tw = g.measureText(t).width + 14, lx = q.x + r + 6, ly = q.y - th / 2;
+      var tw = g.measureText(t).width + 14, dx = q.x - W / 2, dy = q.y - H / 2;
+      var lx = dx >= 0 ? q.x + r + 6 : q.x - r - tw - 6, ly = Math.max(3, Math.min(H - th - 3, q.y + (dy > 0 ? r + 5 : -r - th - 5)));
+      lx = Math.max(3, Math.min(W - tw - 3, lx));
       rr(lx, ly, tw, th, 5); g.fillStyle = 'rgba(9,15,28,0.92)'; g.fill();
       g.strokeStyle = hot ? '#ffffff' : COL[n.level]; g.lineWidth = hot ? 1.6 : 1; g.stroke();
-      g.fillStyle = '#eef3fa'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(t, lx + 7, q.y + 0.5);
+      g.fillStyle = '#eef3fa'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(t, lx + 7, ly + th / 2);
       g.globalAlpha = 1;
-      o.box = [q.x - r - 4, Math.min(q.y - r - 4, ly), lx + tw, Math.max(q.y + r + 4, ly + th)];
+      o.box = [Math.min(q.x - r - 4, lx), Math.min(q.y - r - 4, ly), Math.max(q.x + r + 4, lx + tw), Math.max(q.y + r + 4, ly + th)];
     });
   }
   // ---------- 动画（按需运行） ----------

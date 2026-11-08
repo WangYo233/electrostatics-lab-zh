@@ -81,18 +81,33 @@
     if (this.mode === '2d') this.half = EL.U.clamp(this.half * f, 0.3, 200);
     else this.dist = EL.U.clamp(this.dist * f, 1, 400);
   };
+  Camera.prototype.zoomAt = function (f, x, y) {
+    const plane = this.mode === '2d' ? V.planeBasis(this.plane) : { n: this.viewDir() };
+    const point = this.mode === '2d' ? this.center() : this.target.slice();
+    const hit = () => {
+      this.matrices();
+      const r = this.ray(x, y), den = V.dot(r.d, plane.n);
+      if (Math.abs(den) < 1e-8) return point;
+      const t = V.dot(V.sub(point, r.o), plane.n) / den;
+      return V.addS(r.o, r.d, t);
+    };
+    const before = hit(); this.zoom(f); const after = hit(), shift = V.sub(before, after);
+    if (this.mode === '2d') {
+      const b = V.planeBasis(this.plane); this.pan[0] += V.dot(shift, b.u); this.pan[1] += V.dot(shift, b.v);
+    } else this.target = V.add(this.target, shift);
+  };
 
   // 绑定指针交互：拖动把手 > 旋转/平移；滚轮与双指缩放
   Camera.prototype.attach = function (el, hooks) {
     const cam = this, ptrs = new Map();
-    let drag = null, pinch = 0;
+    let drag = null, pinch = 0, pinchCenter = null;
     const pos = e => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
     el.addEventListener('pointerdown', e => {
       el.setPointerCapture(e.pointerId);
       cam.tw = null;
       const p = pos(e);
       ptrs.set(e.pointerId, p);
-      if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); drag = null; return; }
+      if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); pinchCenter = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; drag = null; return; }
       const hd = hooks.pick && hooks.pick(p[0], p[1]);
       if (hd) {
         let n = hd.plane;
@@ -107,9 +122,9 @@
       if (!ptrs.has(e.pointerId)) { hooks.hover && hooks.hover(p[0], p[1]); return; }
       ptrs.set(e.pointerId, p);
       if (ptrs.size === 2) {
-        const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
-        if (pinch > 0) { cam.zoom(pinch / d); hooks.change(); }
-        pinch = d; return;
+        const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), center = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+        if (pinch > 0) { cam.zoomAt(pinch / d, pinchCenter[0], pinchCenter[1]); hooks.change(); }
+        pinch = d; pinchCenter = center; return;
       }
       if (!drag) return;
       if (drag.type === 'handle') {
@@ -138,14 +153,14 @@
     });
     const end = e => {
       ptrs.delete(e.pointerId);
-      if (ptrs.size < 2) pinch = 0;
+      if (ptrs.size < 2) { pinch = 0; pinchCenter = null; }
       if (drag && drag.type === 'handle') hooks.dragEnd && hooks.dragEnd(drag.hd);
       drag = null;
     };
     el.addEventListener('pointerup', end);
     el.addEventListener('pointercancel', end);
     el.addEventListener('contextmenu', e => e.preventDefault());
-    el.addEventListener('wheel', e => { e.preventDefault(); cam.zoom(e.deltaY > 0 ? 1.1 : 1 / 1.1); hooks.change(); }, { passive: false });
+    el.addEventListener('wheel', e => { e.preventDefault(); const p = pos(e); cam.zoomAt(Math.exp(e.deltaY * 0.0012), p[0], p[1]); hooks.change(); }, { passive: false });
   };
 
   EL.Camera = Camera;

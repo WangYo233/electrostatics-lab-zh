@@ -63,6 +63,7 @@
   A.setTheme = function (k) {
     EL.setTheme(k); U.store.set('theme', k); A.applyColors();
     const s = U.$('#stage');
+    U.$('#caption').dataset.theme = EL.C.lbl;
     s.dataset.theme = EL.C.lbl; s.style.setProperty('--stage-bg', EL.C.bgCss); s.style.background = EL.C.bgCss;
     s.querySelectorAll('.hud,.tools,.legend,.stagebar,.caption').forEach(e => e.classList.add('glass'));
     A.renderLegend();
@@ -312,6 +313,7 @@
   A.catOf = m => { const c = A.CATS.find(([, ids]) => ids.includes(m.id)); return c ? c[0].replace(/^.、/, '') : ''; };
   A.boot = function () {
     const id = new URLSearchParams(location.search).get('m') || '1', m = EL.model(id) || EL.model(1);
+    U.$('#stage').after(U.$('#caption')); U.$('#caption').classList.add('glass');
     document.title = m.code + ' ' + m.title + ' · 静电学实验室';
     U.$('#labTitle').textContent = m.code + ' ' + m.title;
     const CATS = A.CATS;
@@ -390,9 +392,10 @@
     U.$('#importFile').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { A.restore(t); U.toast('文件已导入。'); } catch (er) { U.toast('导入失败：' + er.message); } }); e.target.value = ''; });
     on('#btnPng', () => { const a = h('a', { href: A.r.snapshot(), download: '画板_' + A.st.model.code + '.png' }); document.body.append(a); a.click(); a.remove(); });
     on('#btnHome', () => { A.r.cam.reset(A.c.bound, A.st.view === '2d', true); A.r.draw(); });
+    on('#btnTheme', () => A.setTheme(EL.theme === 'dark' ? 'light' : 'dark'));
     on('#btnTop', () => { if (A.st.view === '3d') { A.r.cam.top(); A.r.draw(); } });
-    on('#btnZin', () => { A.r.cam.zoom(1 / 1.2); A.r.draw(); });
-    on('#btnZout', () => { A.r.cam.zoom(1.2); A.r.draw(); });
+    on('#btnZin', () => { A.r.cam.zoomAt(1 / 1.2, A.r.cam.w / 2, A.r.cam.h / 2); A.r.draw(); });
+    on('#btnZout', () => { A.r.cam.zoomAt(1.2, A.r.cam.w / 2, A.r.cam.h / 2); A.r.draw(); });
     on('#btnReset', () => { if (!confirm('要恢复本阶段的教学参数吗？')) return; const st = A.st, m = st.model; for (const q of m.params) st.p[q.key] = q.val; for (const t of m.toggles || []) st.p[t.key] = t.val; if (!m.alwaysCustom) st.custom = null; A.gotoStage(st.stage); });
     on('#btnFull', () => { const el = U.$('#stage'); document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen && el.requestFullscreen(); });
     on('#btnHelp', () => { U.$('#help').hidden = false; });
