@@ -64,8 +64,8 @@
     U.$('#btnTheme').addEventListener('click', () => W.setTheme(EL.theme === 'dark' ? 'light' : 'dark'));
     U.$('#btnHome').addEventListener('click', () => W.r.cam.reset(W.AD * 1.2, false, true));
     U.$('#btnTop').addEventListener('click', () => W.align([0, 0, 1]));
-    U.$('#btnZin').addEventListener('click', () => { W.r.cam.zoomAt(1 / 1.2, W.r.cam.w / 2, W.r.cam.h / 2); W.r.draw(); });
-    U.$('#btnZout').addEventListener('click', () => { W.r.cam.zoomAt(1.2, W.r.cam.w / 2, W.r.cam.h / 2); W.r.draw(); });
+    U.$('#btnZin').addEventListener('click', () => { W.r.cam.zoomAt(1 / 1.3, W.r.cam.w / 2, W.r.cam.h / 2); W.r.draw(); });
+    U.$('#btnZout').addEventListener('click', () => { W.r.cam.zoomAt(1.3, W.r.cam.w / 2, W.r.cam.h / 2); W.r.draw(); });
     U.$('#btnFull').addEventListener('click', () => { const el = U.$('#stage').closest('.view'); document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen && el.requestFullscreen(); });
     U.$('#btnNew').addEventListener('click', () => { X.T.start(null, X.S.pb ? X.itemKey(X.S.pb) : X.S.empty ? (X.firstItem(X.S.empty) || {}).key : null); X.setMode('teacher'); });
     U.$('#btnEdit').addEventListener('click', () => { if (!X.S.pb) return U.toast('请先选择一道题。'); X.T.start(X.S.pb); X.setMode('teacher'); });
@@ -89,6 +89,10 @@
     const r = X.route(location.search);
     if (r.model) X.openModel(r.model); else X.open(X.BUILTIN[0]);
     if (r.mode === 'teacher') X.T.start(null, r.model ? (X.firstItem(r.model) || {}).key : null);
+    const modelSel = U.$('#modelSel'), groups = [['一、基础模型', [1, 2]], ['二、对称模型', [4, 6, 5]], ['三、拓展与创作', [7, 8, 3]], ['四、例题与题目', []]];
+    modelSel.replaceChildren(...groups.map(([title, ids], i) => h('optgroup', { label: title }, ids.map(id => h('option', { value: String(id) }, X.LABS[id].code + ' ' + X.LABS[id].title)).concat(i === 3 ? [h('option', { value: 'problems' }, '例题探究'), h('option', { value: 'add' }, '题目添加')] : []))));
+    modelSel.value = String(X.modelOf(X.S.pb || X.BUILTIN[0]));
+    modelSel.addEventListener('change', e => { const v = e.target.value; if (v === 'problems') { X.setMode('student'); X.open(X.BUILTIN[0]); } else if (v === 'add') location.href = 'examples.html?mode=add'; else location.href = 'examples.html?model=' + v; });
     X.setMode(r.mode, true);
   });
 })(window.EL);

@@ -1,4 +1,6 @@
 /* 例题探究页 */
+.ex .exp { flex: 0 1 360px; min-width: 170px; }
+.ex .exp select { width: 100%; }
 body.ex .ex-title { color: var(--chrome-muted); font-size: 13px; letter-spacing: .1em; }
 .ex-work { flex: 1; min-height: 0; display: grid; grid-template-columns: 270px minmax(0, 1fr) 400px; }
 .ex-left, .ex-right { background: var(--surface); overflow: auto; padding: 12px 14px 24px; min-height: 0; }

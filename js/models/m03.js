@@ -1,5 +1,5 @@
 'use strict';
-// 03 圆盘电荷：总相互作用能与候选构型比较（雪花问题）
+// 03 圆盘电荷：总相互作用能与候选构型比较
 (function (EL) {
   const V = EL.V, MH = EL.MH;
   const Uring = (n, q, R) => { if (n < 2) return 0; let s = 0; for (let m = 1; m < n; m++) s += 1 / Math.sin(Math.PI * m / n); return n * q * q * s / (4 * R); };
@@ -23,7 +23,7 @@
   }
 
   EL.defModel({
-    id: 3, code: '拓展 2', order: 8, ext: true, file: '03', title: '圆盘电荷（雪花问题）', short: '总相互作用能、中心构型与局部扰动',
+    id: 3, code: '拓展 2', order: 8, ext: true, file: '03', title: '圆盘电荷', short: '总相互作用能、中心构型与局部扰动',
     view: '2d', lock2d: false, R: 6, rMin: 0.2, perCharge: false,
     params: [
       { key: 'N', label: '点电荷的总个数 N', min: 2, max: 12, step: 1, val: 6 },

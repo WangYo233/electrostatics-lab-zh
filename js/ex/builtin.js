@@ -29,4 +29,5 @@
       pts: { O: { def: { t: 'center' } } },
       qs: [{ t: 'pairs' }, { t: 'U' }, { t: 'Ucmp' }, { t: 'Ezero', at: 'O' }] }
   ];
+  EL.EX.BUILTIN.sort((a, b) => { const rank = id => id === 'tpt-triangle-three-like' ? 0 : id === 'tpt-tetra' ? 1 : 2; return rank(a.id) - rank(b.id); });
 })(window.EL);

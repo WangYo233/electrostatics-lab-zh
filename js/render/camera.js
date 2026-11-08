@@ -160,7 +160,7 @@
     el.addEventListener('pointerup', end);
     el.addEventListener('pointercancel', end);
     el.addEventListener('contextmenu', e => e.preventDefault());
-    el.addEventListener('wheel', e => { e.preventDefault(); const p = pos(e); cam.zoomAt(Math.exp(e.deltaY * 0.0012), p[0], p[1]); hooks.change(); }, { passive: false });
+    el.addEventListener('wheel', e => { e.preventDefault(); const p = pos(e); cam.zoomAt(Math.exp(e.deltaY * 0.002), p[0], p[1]); hooks.change(); }, { passive: false });
   };
 
   EL.Camera = Camera;

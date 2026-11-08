@@ -40,7 +40,7 @@
     }
     const last = cs.i === cs.n - 1;
     kids.push(h('div.cap-nav', null, K.btn('‹', nav.prev, 'mini', '返回上一步'),
-      h('span.cap-dots', null, cs.steps.map((_, i) => h('i', { class: i === cs.i ? 'on' : i < cs.i ? 'done' : '' }))),
+      h('span.cap-progress', null, '步骤 ' + (cs.i + 1) + ' / ' + cs.n),
       nav.stop ? K.btn('退出向导', nav.stop, 'mini') : null, K.btn(last ? '完成合成' : '下一步 ›', nav.next, 'mini primary')));
     return kids;
   };

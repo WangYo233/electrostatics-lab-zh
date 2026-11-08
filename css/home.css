@@ -9,6 +9,10 @@
 .home-hero h1 { max-width: 720px; font-size: 38px; line-height: 1.2; }
 .home-hero p { max-width: 620px; line-height: 1.75; }
 .home { max-width: 1200px; }
+.home .cards { grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); align-items: stretch; }
+.home .card-link { min-height: 112px; display: flex; flex-direction: column; justify-content: center; }
+.home .cat { display: flex; align-items: center; gap: 12px; margin-top: 30px; }
+.home .cat::after { content: ""; height: 1px; flex: 1; background: var(--line-2); }
 
 /* 知识图谱 */
 .kg { margin-top: 30px; }

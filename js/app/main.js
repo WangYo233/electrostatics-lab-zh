@@ -394,8 +394,8 @@
     on('#btnHome', () => { A.r.cam.reset(A.c.bound, A.st.view === '2d', true); A.r.draw(); });
     on('#btnTheme', () => A.setTheme(EL.theme === 'dark' ? 'light' : 'dark'));
     on('#btnTop', () => { if (A.st.view === '3d') { A.r.cam.top(); A.r.draw(); } });
-    on('#btnZin', () => { A.r.cam.zoomAt(1 / 1.2, A.r.cam.w / 2, A.r.cam.h / 2); A.r.draw(); });
-    on('#btnZout', () => { A.r.cam.zoomAt(1.2, A.r.cam.w / 2, A.r.cam.h / 2); A.r.draw(); });
+    on('#btnZin', () => { A.r.cam.zoomAt(1 / 1.3, A.r.cam.w / 2, A.r.cam.h / 2); A.r.draw(); });
+    on('#btnZout', () => { A.r.cam.zoomAt(1.3, A.r.cam.w / 2, A.r.cam.h / 2); A.r.draw(); });
     on('#btnReset', () => { if (!confirm('要恢复本阶段的教学参数吗？')) return; const st = A.st, m = st.model; for (const q of m.params) st.p[q.key] = q.val; for (const t of m.toggles || []) st.p[t.key] = t.val; if (!m.alwaysCustom) st.custom = null; A.gotoStage(st.stage); });
     on('#btnFull', () => { const el = U.$('#stage').closest('.view'); document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen && el.requestFullscreen(); });
     on('#btnHelp', () => { U.$('#help').hidden = false; });

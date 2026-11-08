@@ -109,14 +109,23 @@
     if (c.m.handles) for (const h of c.m.handles(c)) hs.push({ p: h.p, plane: h.plane, kind: 'model', move: q => h.move(q, set) });
     if (c.m.editor && st.layers.charges) c.sources.forEach((s, i) => {
       const cs = st.custom && st.custom[i];
-      if (cs && cs.bind) return;
       hs.push({ p: is2d ? V.addS(s.p, B.n, -(V.dot(s.p, B.n) - st.planePos)) : s.p, kind: 'source', move: q => {
         A.ensureCustom(c);
         const src = st.custom[i];
         if (!src) return;
         if (is2d) q = V.addS(q, B.n, V.dot(src.p, B.n) - V.dot(q, B.n));
         const lim = c.m.editor.xyz;
-        src.p = q.map(x => +EL.U.clamp(x, -lim, lim).toFixed(2));
+        q = q.map(x => +EL.U.clamp(x, -lim, lim).toFixed(2));
+        let snap = null, best = 0.18;
+        for (let bi = 0; bi < (st.hidden.bgs || []).length; bi++) {
+          const bg = st.hidden.bgs[bi];
+          for (const sp of EL.GEO.build(bg).special) {
+            const d = V.dist(q, sp.p);
+            if (d < best) { best = d; snap = { bi, key: sp.key, p: sp.p }; }
+          }
+        }
+        if (snap) { src.p = snap.p.slice(); src.bind = { bg: snap.bi, key: snap.key }; }
+        else { src.p = q; src.bind = null; }
       } });
     });
     return hs;

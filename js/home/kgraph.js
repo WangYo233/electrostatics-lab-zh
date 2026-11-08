@@ -88,34 +88,18 @@
       } else { n.first = n.last = slots++; }
     }
     assign(root);
-    var desiredW = small && slots > 3 ? Math.max(viewportW, slots * 92 + 28) : viewportW;
-    cv.style.width = desiredW > viewportW + 1 ? desiredW + 'px' : '';
-    W = cv.clientWidth;
-    var unit = W / Math.max(1, slots);
-    vis.forEach(function (n) { n.x = ((n.first + n.last + 1) / 2) * unit; });
     var byLevel = [];
     vis.forEach(function (n) { (byLevel[n.level] || (byLevel[n.level] = [])).push(n); });
-    byLevel.forEach(function (row) {
-      row.sort(function (a, b) { return a.x - b.x; });
-      row.forEach(function (n, i) {
-        var gap = Math.min(n.x * 2 - 12, (W - n.x) * 2 - 12, row.length === 1 ? W - 28 : Math.min(i ? n.x - row[i - 1].x : Infinity, i + 1 < row.length ? row[i + 1].x - n.x : Infinity) - 12);
-        n.boxW = Math.max(40, Math.min(small ? 150 : 220, gap));
-        wrapLabel(n, n.boxW - 12);
-        n.lineH = small ? 12 : 14; n.boxH = n.lines.length * n.lineH + 8;
-      });
-    });
-    var rowHeights = byLevel.map(function (row, level) {
-      var textH = row.reduce(function (m, n) { return Math.max(m, n.boxH); }, 0), radius = level === 0 ? 12 : 8;
-      return radius * 2 + 6 + textH + 12;
-    });
-    var needH = rowHeights.reduce(function (a, b) { return a + b; }, 22) + 14;
+    byLevel.forEach(function (row) { row.forEach(function (n) { g.font = font(n); n.boxW = Math.min(210, Math.max(72, g.measureText(txt(n)).width + 16)); wrapLabel(n, n.boxW - 12); n.lineH = small ? 12 : 14; n.boxH = n.lines.length * n.lineH + 8; }); });
+    var cols = [], x = 18;
+    byLevel.forEach(function (row, level) { var radius = level ? 8 : 12, width = row.reduce(function (m, n) { return Math.max(m, n.boxW); }, 0); cols[level] = { x: x + radius, width: width }; x += radius * 2 + width + 34; });
+    var desiredW = Math.max(viewportW, x + 8);
+    cv.style.width = desiredW > viewportW + 1 ? desiredW + 'px' : ''; W = cv.clientWidth;
+    var unit = Math.max(78, small ? 82 : 92);
+    vis.forEach(function (n) { n.x = cols[n.level].x; n.y = 25 + (n.first + n.last + 1) * unit / 2; });
+    var needH = Math.max(baseH, (slots + 1) * unit + 24);
     cv.style.height = Math.max(baseH, needH) + 'px'; H = cv.clientHeight;
-    var y = 11;
-    byLevel.forEach(function (row, level) {
-      var radius = level === 0 ? 12 : 8, textH = rowHeights[level] - radius * 2 - 18;
-      row.forEach(function (n) { n.t = [n.x - W / 2, H / 2 - (y + radius), 0]; n.radius = radius; n.boxY = y + radius * 2 + 5; n.boxH = textH; });
-      y += rowHeights[level];
-    });
+    byLevel.forEach(function (row, level) { row.forEach(function (n) { n.radius = level ? 8 : 12; n.t = [n.x - W / 2, H / 2 - n.y, 0]; }); });
   }
   function resize() { layout(); var dpr = window.devicePixelRatio || 1; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0); kick(); }
   function project(p) { return { x: W / 2 + (p[0] - ctr[0]) * zoom, y: H / 2 - (p[1] - ctr[1]) * zoom, z: 0, s: zoom }; }
@@ -142,13 +126,13 @@
       g.beginPath(); g.arc(q.x, q.y, r, 0, Math.PI * 2); g.fill();
       if (n.kids.length && !n.open) { g.strokeStyle = COL[n.level]; g.lineWidth = 1.5 * zoom; g.beginPath(); g.arc(q.x, q.y, r + 4 * zoom, 0, Math.PI * 2); g.stroke(); }
       if (hot) { g.strokeStyle = '#ffffff'; g.lineWidth = 2 * zoom; g.beginPath(); g.arc(q.x, q.y, r + 7 * zoom, 0, Math.PI * 2); g.stroke(); }
-      var tw = n.boxW * zoom, th = n.boxH * zoom, lx = q.x - tw / 2, ly = q.y + r + 5 * zoom;
+      var tw = n.boxW * zoom, th = n.boxH * zoom, lx = q.x + r + 6 * zoom, ly = q.y - th / 2;
       rr(lx, ly, tw, th, 5 * zoom); g.fillStyle = 'rgba(9,15,28,0.94)'; g.fill();
       g.strokeStyle = hot ? '#ffffff' : COL[n.level]; g.lineWidth = hot ? 1.6 : 1; g.stroke();
       g.fillStyle = '#f4f7fc'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = font(n).replace(/([\d.]+)px/, function (_, px) { return (parseFloat(px) * zoom) + 'px'; });
-      n.lines.forEach(function (s, i) { g.fillText(s, q.x, ly + 4 * zoom + (i + 0.5) * n.lineH * zoom, Math.max(1, tw - 12 * zoom)); });
+      n.lines.forEach(function (s, i) { g.fillText(s, lx + tw / 2, ly + 4 * zoom + (i + 0.5) * n.lineH * zoom, Math.max(1, tw - 12 * zoom)); });
       g.globalAlpha = 1;
-      o.box = [Math.min(q.x - r - 4 * zoom, lx), q.y - r - 4 * zoom, Math.max(q.x + r + 4 * zoom, lx + tw), ly + th];
+      o.box = [q.x - r - 4 * zoom, Math.min(q.y - r - 4 * zoom, ly), lx + tw, Math.max(q.y + r + 4 * zoom, ly + th)];
     });
   }
   // ---------- 动画（按需运行） ----------
@@ -216,7 +200,7 @@
   cv.addEventListener('wheel', function (e) {
     e.preventDefault();
     var r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-    var next = Math.max(0.55, Math.min(2.8, zoom * Math.exp(-e.deltaY * 0.0012)));
+    var next = Math.max(0.55, Math.min(2.8, zoom * Math.exp(-e.deltaY * 0.002)));
     var wx = ctr[0] + (x - W / 2) / zoom, wy = ctr[1] - (y - H / 2) / zoom;
     ctr[0] = wx - (x - W / 2) / next; ctr[1] = wy + (y - H / 2) / next; zoom = next; kick();
   }, { passive: false });

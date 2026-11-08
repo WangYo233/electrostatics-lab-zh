@@ -17,7 +17,7 @@
   X.LABS = {
     1: { code: '01', title: '点电荷与偶极子' }, 2: { code: '02', title: '路径与能量' },
     4: { code: '03', title: '正四面体' }, 6: { code: '04', title: '正六面体' }, 5: { code: '05', title: '正八面体' },
-    7: { code: '06', title: '自主探究' }, 8: { code: '拓展 1', title: '解析场模型' }, 3: { code: '拓展 2', title: '圆盘电荷（雪花问题）' }
+    7: { code: '06', title: '自主探究' }, 8: { code: '拓展 1', title: '解析场模型' }, 3: { code: '拓展 2', title: '圆盘电荷' }
   };
   const GROUPS = [['一、基础模型', [1, 2]], ['二、对称模型', [4, 6, 5]], ['三、拓展与创作', [7, 8, 3]], ['四、例题与题目', []]];
   X.UNITS = { a: { E: 'kQ/a²', V: 'kQ/a', W: 'kQq/a', L: 'a' }, L: { E: 'kQ/L²', V: 'kQ/L', W: 'kQq/L', U: 'kQ²/L', L: 'L' }, none: { E: '', V: '', W: '', L: 'L' } };
