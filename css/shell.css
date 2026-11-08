@@ -64,8 +64,11 @@ body[data-mode="theory"] .stage { display: none; }
 body:not([data-mode="theory"]) .theory-page { display: none; }
 .view { min-width: 0; min-height: 0; position: relative; padding: 10px; display: flex; flex-direction: column; }
 body.lab:not([data-mode="theory"]) .view, body.ex .view { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px; overflow: hidden; }
+body.lab:not([data-mode="theory"]) .view:fullscreen, body.ex .view:fullscreen { width: 100vw; height: 100vh; max-height: 100vh; padding: 12px; background: var(--bg); grid-template-rows: minmax(0, 1fr) auto; }
 body.lab:not([data-mode="theory"]) .view > .stage, body.ex .view > .stage { grid-row: 1; min-height: 0; width: 100%; }
 body.lab:not([data-mode="theory"]) .view > .caption, body.ex .view > .caption { grid-row: 2; position: relative; inset: auto; transform: none; align-self: stretch; }
+body.lab:not([data-mode="theory"]) .view:fullscreen > .stage, body.ex .view:fullscreen > .stage { min-height: 0; border-radius: 8px; }
+body.lab:not([data-mode="theory"]) .view:fullscreen > .caption, body.ex .view:fullscreen > .caption { max-height: min(34vh, 320px); width: 100%; }
 body[data-mode="theory"] .view { display: block; overflow: auto; }
 .insp { display: none; animation: fadeIn .3s var(--ease); }
 body[data-mode="explore"] .insp[data-for="explore"], body[data-mode="analyze"] .insp[data-for="analyze"], body[data-mode="record"] .insp[data-for="record"] { display: block; }

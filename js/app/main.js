@@ -397,7 +397,7 @@
     on('#btnZin', () => { A.r.cam.zoomAt(1 / 1.2, A.r.cam.w / 2, A.r.cam.h / 2); A.r.draw(); });
     on('#btnZout', () => { A.r.cam.zoomAt(1.2, A.r.cam.w / 2, A.r.cam.h / 2); A.r.draw(); });
     on('#btnReset', () => { if (!confirm('要恢复本阶段的教学参数吗？')) return; const st = A.st, m = st.model; for (const q of m.params) st.p[q.key] = q.val; for (const t of m.toggles || []) st.p[t.key] = t.val; if (!m.alwaysCustom) st.custom = null; A.gotoStage(st.stage); });
-    on('#btnFull', () => { const el = U.$('#stage'); document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen && el.requestFullscreen(); });
+    on('#btnFull', () => { const el = U.$('#stage').closest('.view'); document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen && el.requestFullscreen(); });
     on('#btnHelp', () => { U.$('#help').hidden = false; });
     on('#closeHelp', () => { U.$('#help').hidden = true; });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { U.$('#help').hidden = true; U.$('.menu').open = false; } });
