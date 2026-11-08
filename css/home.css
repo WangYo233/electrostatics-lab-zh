@@ -16,7 +16,7 @@
 .kg-head .cat { margin-bottom: 10px; }
 .kg-tools { display: flex; gap: 6px; margin-bottom: 8px; }
 .kg-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); background: var(--surface); }
-.kg-body canvas { display: block; width: 100%; height: 480px; background: radial-gradient(110% 100% at 50% 45%, #16233a 0%, #0b1220 65%, #070c16 100%); cursor: grab; touch-action: none; }
+.kg-body canvas { display: block; width: 100%; min-width: 0; height: clamp(360px, 40vw, 480px); background: radial-gradient(110% 100% at 50% 45%, #16233a 0%, #0b1220 65%, #070c16 100%); cursor: grab; touch-action: none; }
 .kg-body canvas:active { cursor: grabbing; }
 .kg-body canvas:focus-visible { outline: 3px solid #8ea0ff; outline-offset: -3px; }
 .kg-side { border-left: 1px solid var(--line); padding: 12px 12px 14px; max-height: 480px; overflow: auto; }
@@ -35,7 +35,7 @@ a.kg-i.l3 { color: var(--accent-2); }             /* 模型：链接色 */
 @media (max-width: 760px) {
   .home { padding: 4px 14px 32px; }
   .kg-body { grid-template-columns: 1fr; }
-  .kg-body canvas { height: 380px; }
+  .kg-body canvas { height: clamp(340px, 68vw, 420px); }
   .kg-side { border-left: 0; border-top: 1px solid var(--line); max-height: none; }
 }
 @media (max-width: 420px) {

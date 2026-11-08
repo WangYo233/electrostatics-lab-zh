@@ -5,14 +5,18 @@ body.ex .ex-title { color: var(--chrome-muted); font-size: 13px; letter-spacing:
 .ex-left { border-right: 1px solid var(--line); } .ex-right { border-left: 1px solid var(--line); }
 body[data-exmode="student"] .ex-only-t, body[data-exmode="teacher"] .ex-only-s { display: none; }
 body.ex .stage .stagebar { left: 12px; right: auto; width: auto; }
-.ex .view { overflow: hidden; }
-.ex .caption { max-height: 28vh; color: var(--chrome-ink); background: rgba(14,22,38,.88); border: 1px solid rgba(255,255,255,.16); }
+.ex .view { overflow: hidden; min-height: 0; }
+.ex .caption { max-height: min(28vh, 240px); color: var(--chrome-ink); background: rgba(14,22,38,.94); border: 1px solid rgba(255,255,255,.16); }
 .ex .caption[data-theme="light"] { color: var(--ink); background: rgba(255,255,255,.94); border-color: var(--line); }
 .ex .caption input, .ex .caption select { color: #172033 !important; background: #fff !important; }
-.element-style { position: fixed; z-index: 100; width: 240px; max-width: calc(100vw - 16px); padding: 12px; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.28); color: var(--chrome-ink); background: rgba(14,22,38,.94); }
+.element-style { position: fixed; z-index: 100; width: 280px; max-width: calc(100vw - 16px); max-height: min(80vh, 560px); overflow: auto; padding: 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.28); color: #f2f6fc; background: #111b2d; }
+.element-style[data-theme="light"] { color: #172033; background: #fff; border-color: #c8d1de; }
 .element-style[hidden] { display: none; }
 .element-style .ctl { margin: 8px 0; }
 .element-style input[type=color] { width: 40px; height: 28px; }
+.element-style small { display: block; color: #c4d0e0; line-height: 1.5; margin: 6px 0; }
+.element-style[data-theme="light"] small { color: #3a4a60; }
+.element-style hr { border: 0; border-top: 1px solid currentColor; opacity: .25; margin: 10px 0; }
 .ex-list h3 { font-size: 11.5px; letter-spacing: .1em; color: var(--muted); margin: 12px 0 6px; }
 .ex-item { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 8px 10px; margin: 6px 0; transition: border-color .15s, background .15s; }
 .ex-item b { display: block; font-size: 13.5px; } .ex-item span { font-size: 12px; color: var(--muted); }
@@ -65,5 +69,5 @@ body.ex .stage .stagebar { left: 12px; right: auto; width: auto; }
 .diag li { padding: 4px 8px; border-radius: 6px; margin: 4px 0; background: var(--surface-2); border-left: 3px solid var(--line-2); }
 .diag li.good { border-color: var(--ok); } .diag li.bad { border-color: var(--bad); background: #fbecee; } .diag li.info { border-color: var(--accent); }
 .ta { font-size: 12.5px; border-top: 1px dashed var(--line); padding-top: 6px; margin-top: 6px; } .ta p { margin: 2px 0; } .ta ul { margin: 2px 0; padding-left: 18px; }
-@media (max-width: 1100px) { .ex-work { grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; } .ex-right { grid-column: 1 / -1; max-height: 45vh; } }
-@media (max-width: 720px) { .ex-work { display: flex; flex-direction: column; } .ex-left, .ex-right { max-height: none; } .stage { min-height: 56vh; } }
+@media (max-width: 1100px) { .ex-work { grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: minmax(420px, 1fr) auto; } .ex-right { grid-column: 1 / -1; max-height: 45vh; } }
+@media (max-width: 720px) { .ex-work { display: flex; flex-direction: column; } .ex-left, .ex-right { max-height: none; } .ex .view { flex: none; min-height: 72vh; grid-template-rows: minmax(340px, 1fr) auto; padding: 8px; } .ex .caption { max-height: 30vh; } .stage { min-height: 0; } }

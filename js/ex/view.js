@@ -11,7 +11,9 @@
 
   W.init = function () {
     W.r = new EL.Renderer(U.$('#gl'), U.$('#labels'));
-    W.r.fx.reveal = false;
+    const fx = U.store.get('ex:fx', {});
+    W.r.fx.glow = fx.glow !== false;
+    W.r.fx.reveal = !!fx.reveal;
     W.r.cam.reset(AD * 1.2, false);
     W.r.cam.attach(U.$('#gl'), { change: () => W.r.draw(), pick: () => null });
     new ResizeObserver(() => W.r.draw()).observe(U.$('#stage'));
@@ -33,22 +35,46 @@
     cam.tween({ theta: Math.atan2(d[1], d[0]), phi: U.clamp(Math.asin(U.clamp(d[2], -1, 1)), -1.5, 1.5), target: [0, 0, 0] }, 700);
   };
 
+  W.pickContext = function (x, y) {
+    const sol = W.last && W.last[1];
+    if (!sol) return { type: 'scene', key: 'geometry', title: '画板设置' };
+    const R = sol.R, cam = W.r.cam;
+    cam.matrices();
+    const near = (items, limit) => items.map(o => {
+      const p = cam.toScreen(M(o.p));
+      return p ? { o, d: Math.hypot(p[0] - x, p[1] - y), z: p[2] } : null;
+    }).filter(o => o && o.z <= 1).sort((a, b) => a.d - b.d)[0];
+    const source = near(R.sources.map(s => ({ type: 'charge', key: s.label, title: s.label + ' 电荷', p: s.p, q: s.q })), 32);
+    if (source && source.d <= 32) return source.o;
+    const pts = Object.keys(R.pts).filter(n => R.pts[n].p && !R.pts[n].vertex && !R.sources.some(s => s.label === n)).map(n => ({ type: 'point', key: 'point:' + n, title: '探针 ' + n, p: R.pts[n].p }));
+    const point = near(pts, 28);
+    if (point && point.d <= 28) return point.o;
+    const geom = R.g, anchors = [];
+    Object.keys(geom.v || {}).forEach(n => anchors.push({ p: geom.v[n] }));
+    (geom.faces || []).forEach(fc => {
+      const ps = fc.map(n => geom.v[n]).filter(Boolean);
+      if (ps.length) anchors.push({ p: ps.reduce((a, p) => V.add(a, p), [0, 0, 0]).map(v => v / ps.length) });
+    });
+    const surface = near(anchors, 42);
+    return surface && surface.d <= 42 ? { type: 'geometry', key: 'geometry', title: '几何背景' } : { type: 'scene', key: 'geometry', title: '画板设置' };
+  };
+
   // f：{kind:'plan', plan, k} | {kind:'path', a, b, s} | {kind:'terms', at:[...]} | {kind:'point', at}
   W.show = function (pb, sol, f) {
     W.last = [pb, sol, f];
-    const R = sol.R, g = R.g, C = EL.C, L = W.layers, out = { lines: [], segs: [], meshes: [], spheres: [], arrows: [], labels: [], glows: [] };
+    const R = sol.R, g = sol.R.g, C = EL.C, L = W.layers, geomLook = W.appearance.geometry || {}, geomColor = geomLook.color ? U.hex(geomLook.color) : C.geom, out = { lines: [], segs: [], meshes: [], spheres: [], arrows: [], labels: [], glows: [] };
     SC = AD / (R.ext || 1);
     const hide = f && f.hide, key = X.kindOf(pb) === 'tpl' ? pb.tpl : JSON.stringify([pb.bgs, pb.sub, pb.sp, pb.disk]);
     if (L.geom) {
       g.edges.forEach(([a, b]) => out.lines.push({ pts: [M(g.v[a]), M(g.v[b])], color: C.edge, width: 1.6 }));
-      g.faces.forEach((fc, i) => out.meshes.push({ mesh: cached('f' + key + i, () => EL.ISO.polygon(fc.map(n => M(g.v[n])))), color: [...C.geom, hide ? 0.04 : 0.08] }));
+      g.faces.forEach((fc, i) => out.meshes.push({ mesh: cached('f' + key + i, () => EL.ISO.polygon(fc.map(n => M(g.v[n])))), color: [...geomColor, geomLook.color ? 0.2 : hide ? 0.04 : 0.08] }));
       if (g.sphere && L.sphere && !hide) out.meshes.push({ mesh: cached('s' + key, () => EL.ISO.sphere(M(g.center), g.sphere * SC, 30)), color: [...C.pot, 0.1] });
       const D = g.draw;
       if (D) {
         D.segs.forEach(s => out.lines.push({ pts: s.map(M), color: C.ring, width: 1.5 }));
         D.loops.forEach(s => out.lines.push({ pts: s.map(M), color: C.ring, width: 1.5 }));
-        D.polys.forEach((s, i) => out.meshes.push({ mesh: cached('p' + key + i + SC, () => EL.ISO.polygon(s.map(M))), color: [...C.geom, hide ? 0.04 : 0.08] }));
-        D.balls.forEach((b, i) => out.meshes.push({ mesh: cached('b' + key + i + SC, () => EL.ISO.sphere(M(b.c), b.r * SC, 30)), color: [...C.geom, 0.1] }));
+        D.polys.forEach((s, i) => out.meshes.push({ mesh: cached('p' + key + i + SC, () => EL.ISO.polygon(s.map(M))), color: [...geomColor, geomLook.color ? 0.2 : hide ? 0.04 : 0.08] }));
+        D.balls.forEach((b, i) => out.meshes.push({ mesh: cached('b' + key + i + SC, () => EL.ISO.sphere(M(b.c), b.r * SC, 30)), color: [...geomColor, 0.1] }));
       }
       if (R.analytic) W.fieldGeom(pb, R, out, key);
     }
@@ -66,7 +92,11 @@
         F = EL.Phys.pointField(src, 0.15);
         lines = cached(lk, () => EL.FL.pointLines(F, { seeds: 10, bound: AD * 1.6, step: AD * 1.6 * 0.016, maxSteps: 1400 }));
       }
-      if (L.lines) lines.forEach(l => out.lines.push({ pts: l, color: [...C.field, 0.7], width: 1.1 }));
+      if (L.lines) lines.forEach(l => {
+        out.lines.push({ pts: l, color: [...C.field, 0.7], width: 1.1, reveal: W.r.fx.reveal });
+        const a = EL.FL.arrowAt(l, 0.45);
+        if (a && a.L > AD * 0.08) { const size = AD * 0.1; out.arrows.push({ p: V.addS(a.p, a.d, -size / 2), v: V.mul(a.d, size), color: [...C.field, 0.82], width: 1.5, head: size, reveal: W.r.fx.reveal }); }
+      });
       if (L.flow) out.flow = cached('F' + lk, () => ({ lines: EL.Flow.speeds(F, lines, 'sqrt'), bound: AD * 1.6 }));
     }
     const rr = AD * 0.05;
@@ -81,7 +111,8 @@
       if (!P.p || R.sources.some(s => s.label === n)) continue;
       if (focusedPts && !focusedPts.has(n)) continue;
       if (P.vertex) { if (L.labels) out.labels.push({ p: M(P.p), text: n, cls: 'pt' }); continue; }
-      MH.mark(out, M(P.p), L.labels ? n : null, C.mark, AD * 0.022);
+      const look = W.appearance['point:' + n] || {};
+      MH.mark(out, M(P.p), L.labels ? n : null, look.color ? U.hex(look.color) : C.mark, AD * 0.022 * (look.size || 1));
     }
     if (f && f.kind === 'plan' && f.plan) VA.draw(f.plan, f.k, out, { MH, C, map: M, R: AD * 1.15 });
     if (f && f.kind === 'path') {
@@ -118,7 +149,7 @@
     const C = EL.C, sp = pb.sp, r = R.ext * 1.3, g = EL.SUB08[pb.sub].geom, op = 0.12;
     if (g === 'point') out.spheres.push({ p: [0, 0, 0], r: AD * 0.05, color: sp.q >= 0 ? C.pos : C.neg });
     if (g === 'line') out.lines.push({ pts: [M([0, 0, -r]), M([0, 0, r])], color: sp.lambda >= 0 ? C.pos : C.neg, width: 4 });
-    if (g === 'plane') out.meshes.push({ mesh: cached('pl' + key, () => EL.ISO.polygon([[-r, -r, 0], [r, -r, 0], [r, r, 0], [-r, r, 0]].map(M))), color: [...(pb.sub === 'infinite-plane' ? (sp.sigma >= 0 ? C.pos : C.neg) : C.geom), op] });
+    if (g === 'plane') out.meshes.push({ mesh: cached('pl' + key, () => EL.ISO.polygon([[-r, -r, 0], [r, -r, 0], [r, r, 0], [-r, r, 0]].map(M))), color: [...(pb.sub === 'infinite-plane' ? (sp.sigma >= 0 ? C.pos : C.neg) : (W.appearance.geometry && W.appearance.geometry.color ? U.hex(W.appearance.geometry.color) : C.geom)), op] });
     if (g === 'sphere') out.meshes.push({ mesh: cached('sp' + key, () => EL.ISO.sphere([0, 0, 0], sp.a * SC, 30)), color: [...(pb.sub === 'conductor-sphere' ? C.conductor : C.pot), 0.16] });
     const axes = [[[-r, 0, 0], [r, 0, 0], 'x'], [[0, -r, 0], [0, r, 0], 'y'], [[0, 0, -r], [0, 0, r], 'z']];
     axes.forEach(([a, b, n]) => { out.lines.push({ pts: [M(a), M(b)], color: C.axis, width: 1 }); if (W.layers.labels) out.labels.push({ p: M(b), text: n, cls: 'pt' }); });

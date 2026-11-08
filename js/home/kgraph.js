@@ -60,29 +60,53 @@
   var FAM = ' "Microsoft YaHei", "PingFang SC", sans-serif';
   function font(n) { return (small ? ['bold 15px', '600 13px', '12.5px', '12px'][n.level] : FONT[n.level]) + FAM; }
   function txt(n) { return n.label + (n.href ? ' →' : n.kids.length ? (n.open ? ' −' : ' +') : ''); }
-  function labelW(n) { g.font = font(n); return g.measureText(txt(n)).width + 14; }
+  function labelW(n) { g.font = font(n); return Math.min(g.measureText(txt(n)).width, Math.max(58, W * 0.32)) + 14; }
+  function spherePoint(count, i) {
+    var s3 = Math.sqrt(3), s5 = Math.sqrt(5);
+    var fixed = {
+      1: [[0, 0, 1]],
+      2: [[1, 0, 0], [-1, 0, 0]],
+      3: [[1, 0, 0], [-0.5, s3 / 2, 0], [-0.5, -s3 / 2, 0]],
+      4: [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]],
+      5: [[0, 0, 1], [0, 0, -1], [1, 0, 0], [-0.5, s3 / 2, 0], [-0.5, -s3 / 2, 0]],
+      6: [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]
+    }[count];
+    if (fixed) { var p = fixed[i], l = Math.hypot(p[0], p[1], p[2]); return p.map(function (v) { return v / l; }); }
+    var z = 1 - 2 * (i + 0.5) / count, a = Math.PI * (3 - Math.sqrt(5)) * i, rho = Math.sqrt(1 - z * z);
+    return [rho * Math.cos(a), rho * Math.sin(a), z];
+  }
+  function childDirection(parent, count, i) {
+    var axis = parent.dir || [0, 0, 1], ref = Math.abs(axis[2]) < 0.82 ? [0, 0, 1] : [0, 1, 0];
+    var u = [axis[1] * ref[2] - axis[2] * ref[1], axis[2] * ref[0] - axis[0] * ref[2], axis[0] * ref[1] - axis[1] * ref[0]], ul = Math.hypot(u[0], u[1], u[2]);
+    u = u.map(function (v) { return v / ul; });
+    var v = [axis[1] * u[2] - axis[2] * u[1], axis[2] * u[0] - axis[0] * u[2], axis[0] * u[1] - axis[1] * u[0]];
+    var cap = count === 1 ? 0.2 : Math.min(0.72, 0.22 + 0.12 * Math.sqrt(count)), z = 1 - (1 - Math.cos(cap)) * (i + 0.5) / count;
+    var rho = Math.sqrt(Math.max(0, 1 - z * z)), a = Math.PI * (3 - Math.sqrt(5)) * i;
+    return axis.map(function (x, k) { return z * x + rho * (Math.cos(a) * u[k] + Math.sin(a) * v[k]); });
+  }
   function layout() {
     var vis = nodes.filter(function (n) { return n === root || visible(n); });
     var deep = 0, maxLabel = 0;
     vis.forEach(function (n) { deep = Math.max(deep, n.level); maxLabel = Math.max(maxLabel, labelW(n)); });
     // Leave room for the full sphere after any projection angle and for its labels.
-    var usable = Math.max(8, Math.min(W, H) * 0.5 - maxLabel - 28);
-    var radialStep = deep ? usable / (Math.SQRT2 * deep) : 0;
+    var radialStep = deep ? Math.min(W, H) * 0.34 / deep : 0;
     nodes.forEach(function (n) { n.t = [0, 0, 0]; });
-    var golden = Math.PI * (3 - Math.sqrt(5));
     for (var level = 1; level <= deep; level++) {
       var ring = vis.filter(function (n) { return n.level === level; }), count = ring.length;
-      ring.forEach(function (n, i) {
-        var z = 1 - 2 * (i + 0.5) / count, rho = Math.sqrt(Math.max(0, 1 - z * z)), a = golden * i;
-        n.t = [radialStep * level * rho * Math.cos(a), radialStep * level * rho * Math.sin(a), radialStep * level * z];
+      if (level === 1) ring.forEach(function (n, i) { n.dir = spherePoint(count, i); });
+      else ring.forEach(function (n, i) { n.dir = childDirection(n.parent, n.parent.kids.length, n.parent.kids.indexOf(n)); });
+      ring.forEach(function (n) {
+        n.t = n.dir.map(function (v) { return radialStep * level * v; });
       });
     }
+    shellRadius = radialStep * deep; shellLevels = deep;
     ctrT = [0, 0, 0];
+    updateFit(vis, maxLabel);
   }
 
   // ---------- 视图 ----------
   var YAW0 = 0.2, PITCH0 = 0, CAM = 900;
-  var yaw = YAW0, pitch = PITCH0, zoom = 1, hover = null, focusN = null, proj = [];
+  var yaw = YAW0, pitch = PITCH0, zoom = 1, fitScale = 1, fitTarget = 1, shellRadius = 0, shellLevels = 0, hover = null, focusN = null, proj = [];
   var ctr = [0, 0, 0], ctrT = [0, 0, 0];
   function resize() {
     var dpr = window.devicePixelRatio || 1;
@@ -94,8 +118,19 @@
     var cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
     var px = p[0] - ctr[0], py = p[1] - ctr[1], pz = p[2] - ctr[2];
     var x = cy * px - sy * pz, z = sy * px + cy * pz, y = cp * py - sp * z; z = sp * py + cp * z;
-    var s = CAM / (CAM + z) * zoom;
+    var s = CAM / (CAM + z) * zoom * fitScale;
     return { x: W / 2 + x * s, y: H / 2 - y * s, z: z, s: CAM / (CAM + z) };
+  }
+  function updateFit(vis, maxLabel) {
+    var cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch), mx = 0, my = 0;
+    (vis || nodes.filter(function (n) { return n === root || visible(n); })).forEach(function (n) {
+      var p = n.t, x = cy * p[0] - sy * p[2], z = sy * p[0] + cy * p[2], y = cp * p[1] - sp * z; z = sp * p[1] + cp * z;
+      var perspective = CAM / Math.max(80, CAM + z); mx = Math.max(mx, Math.abs(x * perspective)); my = Math.max(my, Math.abs(y * perspective));
+    });
+    maxLabel = maxLabel || Math.max.apply(null, (vis || nodes.filter(function (n) { return n === root || visible(n); })).map(labelW));
+    var pad = small ? 8 : 18, labelH = small ? 56 : 52;
+    var shellPerspective = CAM / Math.max(80, CAM - shellRadius), boundX = Math.max(mx, shellRadius * shellPerspective), boundY = Math.max(my, shellRadius * shellPerspective);
+    fitTarget = Math.max(0.1, Math.min(1, (W - 2 * maxLabel - 2 * pad) / Math.max(1, 2 * boundX), (H - 2 * labelH - 2 * pad) / Math.max(1, 2 * boundY)) * 0.94);
   }
 
   // ---------- 绘制 ----------
@@ -104,6 +139,7 @@
   function rr(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
   function draw() {
     g.clearRect(0, 0, W, H);
+    drawShells();
     proj = [];
     nodes.forEach(function (n) { if (n.a > 0.02) proj.push({ n: n, q: project(n.p) }); });
     proj.forEach(function (o) {
@@ -123,15 +159,36 @@
       if (hot) { g.strokeStyle = '#ffffff'; g.lineWidth = 2; g.beginPath(); g.arc(q.x, q.y, r + 7, 0, 7); g.stroke(); }
       // 标签在节点右侧，深色底，文字 #eef3fa（对比度大于 12）
       var t = txt(n), th = n.level === 0 ? 24 : 21; g.font = font(n);
-      var tw = g.measureText(t).width + 14, dx = q.x - W / 2, dy = q.y - H / 2;
+      var maxText = Math.max(44, Math.min(220, W * (small ? 0.38 : 0.3))), words = Array.from(t), lines = [], line = '';
+      g.font = font(n);
+      words.forEach(function (ch) { if (line && g.measureText(line + ch).width > maxText - 10) { lines.push(line); line = ch; } else line += ch; });
+      if (line) lines.push(line);
+      var tw = Math.min(maxText, Math.max.apply(null, lines.map(function (s) { return g.measureText(s).width; })) + 14), th0 = small ? 13 : 14, th = Math.max(th0 + 8, lines.length * th0 + 8), dx = q.x - W / 2, dy = q.y - H / 2;
       var lx = dx >= 0 ? q.x + r + 6 : q.x - r - tw - 6, ly = Math.max(3, Math.min(H - th - 3, q.y + (dy > 0 ? r + 5 : -r - th - 5)));
       lx = Math.max(3, Math.min(W - tw - 3, lx));
       rr(lx, ly, tw, th, 5); g.fillStyle = 'rgba(9,15,28,0.92)'; g.fill();
       g.strokeStyle = hot ? '#ffffff' : COL[n.level]; g.lineWidth = hot ? 1.6 : 1; g.stroke();
-      g.fillStyle = '#eef3fa'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(t, lx + 7, ly + th / 2);
+      g.fillStyle = '#eef3fa'; g.textAlign = 'left'; g.textBaseline = 'middle'; lines.forEach(function (s, i) { g.fillText(s, lx + 7, ly + 4 + th0 * (i + 0.5), tw - 14); });
       g.globalAlpha = 1;
       o.box = [Math.min(q.x - r - 4, lx), Math.min(q.y - r - 4, ly), Math.max(q.x + r + 4, lx + tw), Math.max(q.y + r + 4, ly + th)];
     });
+  }
+  function drawShells() {
+    if (!shellRadius) return;
+    var rings = Math.max(1, shellLevels);
+    g.save(); g.strokeStyle = 'rgba(153,174,204,0.13)'; g.lineWidth = 1;
+    for (var level = 1; level <= rings; level++) {
+      var radius = shellRadius * level / rings;
+      for (var plane = 0; plane < 3; plane++) {
+        g.beginPath();
+        for (var i = 0; i <= 72; i++) {
+          var a = Math.PI * 2 * i / 72, p = plane === 0 ? [radius * Math.cos(a), radius * Math.sin(a), 0] : plane === 1 ? [radius * Math.cos(a), 0, radius * Math.sin(a)] : [0, radius * Math.cos(a), radius * Math.sin(a)], q = project(p);
+          if (!i) g.moveTo(q.x, q.y); else g.lineTo(q.x, q.y);
+        }
+        g.stroke();
+      }
+    }
+    g.restore();
   }
   // ---------- 动画（按需运行） ----------
   var running = false, last = 0, drag = null;
@@ -145,6 +202,8 @@
       for (var i = 0; i < 3; i++) { var d = tp[i] - n.p[i]; n.p[i] += d * f; if (Math.abs(d) > 0.05) moving = true; }
       var da = ta - n.a; n.a += da * f; if (Math.abs(da) > 1e-3) moving = true;
     });
+    var df = fitTarget - fitScale;
+    if (Math.abs(df) > 0.001) { fitScale += df * Math.min(1, f * 1.5); moving = true; }
     for (var j = 0; j < 3; j++) { var dc = ctrT[j] - ctr[j]; ctr[j] += dc * f; if (Math.abs(dc) > 0.05) moving = true; }
     draw();
     if (moving || drag) requestAnimationFrame(tick); else running = false;
@@ -185,6 +244,7 @@
     if (drag) {
       yaw = Math.max(-1.3, Math.min(1.3, yaw + (e.clientX - drag.x) * 0.006));
       pitch = Math.max(-1.1, Math.min(1.1, pitch + (e.clientY - drag.y) * 0.006));
+      updateFit(); draw();
       drag.x = e.clientX; drag.y = e.clientY; return;
     }
     var h = pick(e); if (h !== hover) { hover = h; cv.style.cursor = h ? 'pointer' : 'grab'; draw(); }
@@ -196,7 +256,7 @@
   cv.addEventListener('pointercancel', function () { drag = null; });
   cv.addEventListener('pointerleave', function () { if (hover) { hover = null; draw(); } });
   cv.addEventListener('wheel', function (e) {
-    e.preventDefault(); zoom = Math.max(0.5, Math.min(2.2, zoom * Math.exp(-e.deltaY * 0.0012))); draw();
+    e.preventDefault(); zoom = Math.max(0.5, Math.min(2.2, zoom * Math.exp(-e.deltaY * 0.0012))); updateFit(); kick();
   }, { passive: false });
   cv.addEventListener('keydown', function (e) {
     var k = e.key, used = true;
@@ -204,7 +264,7 @@
     else if (k === 'ArrowUp') pitch = Math.max(-1.1, pitch - 0.12); else if (k === 'ArrowDown') pitch = Math.min(1.1, pitch + 0.12);
     else if (k === '+' || k === '=') zoom = Math.min(2.2, zoom * 1.15); else if (k === '-') zoom = Math.max(0.5, zoom / 1.15);
     else used = false;
-    if (used) { e.preventDefault(); draw(); }
+    if (used) { e.preventDefault(); updateFit(); kick(); }
   });
   host.querySelector('[data-kg=more]').addEventListener('click', expandLayer);
   host.querySelector('[data-kg=reset]').addEventListener('click', reset);

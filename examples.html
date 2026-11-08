@@ -43,7 +43,7 @@
     </aside>
     <main class="view">
       <div id="stage" class="stage">
-        <canvas id="gl" aria-label="三维模型。拖动可旋转视角，滚动滚轮可缩放。"></canvas>
+        <canvas id="gl" aria-label="三维模型。拖动可旋转视角，滚动滚轮可缩放；右键电荷、探针或几何背景可调整外观和动画。" title="右键电荷、探针或几何背景以打开设置菜单"></canvas>
         <div class="grain" aria-hidden="true"></div>
         <div id="labels" class="labels" aria-hidden="true"></div>
         <div class="tools" role="toolbar" aria-label="视图工具">
@@ -53,9 +53,9 @@
           <button type="button" id="btnZout" title="缩小画板" aria-label="缩小画板">－</button>
           <button type="button" id="btnFull" title="切换全屏" aria-label="切换全屏">⛶</button>
         </div>
-        <div class="caption" id="caption" aria-live="polite" hidden></div>
         <div class="stagebar"><div class="sb-mid"><span>显示内容</span></div><div class="sb-layers" id="sbLayers"></div><button type="button" id="btnTheme" class="theme-toggle" title="切换画板主题" aria-label="切换画板主题">◐</button></div>
       </div>
+      <div class="caption" id="caption" aria-live="polite" hidden></div>
     </main>
     <aside class="ex-right">
       <div class="ex-only-s" id="exMain"></div>

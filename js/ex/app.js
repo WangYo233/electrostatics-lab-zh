@@ -22,17 +22,31 @@
   };
   function openElementStyle(e) {
     e.preventDefault();
-    const canvas = U.$('#gl'), rect = canvas.getBoundingClientRect(), x = e.clientX - rect.left, y = e.clientY - rect.top;
-    const sol = X.S.sol, src = sol && sol.R.sources.map(s => ({ s, p: W.r.cam.toScreen(W.M(s.p)) })).filter(o => o.p).sort((a, b) => Math.hypot(a.p[0] - x, a.p[1] - y) - Math.hypot(b.p[0] - x, b.p[1] - y))[0];
-    if (!src || Math.hypot(src.p[0] - x, src.p[1] - y) > 32) return;
-    const menu = U.$('#elementStyle'), look = W.appearance[src.s.label] || {};
-    const color = h('input', { type: 'color', value: look.color || U.toHex(src.s.q > 0 ? EL.C.pos : EL.C.neg), 'aria-label': '电荷颜色' });
-    color.addEventListener('input', () => { W.appearance[src.s.label] = Object.assign({}, W.appearance[src.s.label], { color: color.value }); U.store.set('ex:appearance', W.appearance); if (W.last) W.show(...W.last); });
-    const size = K.slider({ label: '电荷大小', min: 0.6, max: 2.4, step: 0.1, val: look.size || 1, on: v => { W.appearance[src.s.label] = Object.assign({}, W.appearance[src.s.label], { size: v }); U.store.set('ex:appearance', W.appearance); if (W.last) W.show(...W.last); } });
-    const glow = K.check('电荷光晕动画', W.r.fx.glow, v => { W.r.fx.glow = v; if (W.last) W.show(...W.last); });
-    const reveal = K.check('电场线绘制动画', W.r.fx.reveal, v => { W.r.fx.reveal = v; if (W.last) W.show(...W.last); });
-    menu.replaceChildren(h('b', null, src.s.label + ' 外观'), h('label.row.wrap', null, h('span', null, '颜色'), color), size, glow, reveal);
-    menu.hidden = false; menu.style.left = Math.min(e.clientX, innerWidth - 250) + 'px'; menu.style.top = Math.min(e.clientY, innerHeight - 190) + 'px';
+    const canvas = U.$('#gl'), rect = canvas.getBoundingClientRect(), hit = W.pickContext(e.clientX - rect.left, e.clientY - rect.top);
+    const menu = U.$('#elementStyle'), look = W.appearance[hit.key] || {}, isCharge = hit.type === 'charge', isPoint = hit.type === 'point', isGeometry = hit.type === 'geometry';
+    const source = isCharge && W.last && W.last[1].R.sources.find(s => s.label === hit.key);
+    const defaultColor = source ? (source.q > 0 ? EL.C.pos : EL.C.neg) : isPoint ? EL.C.mark : EL.C.geom;
+    const saveLook = changes => { W.appearance[hit.key] = Object.assign({}, W.appearance[hit.key], changes); U.store.set('ex:appearance', W.appearance); if (W.last) W.show(...W.last); };
+    const children = [h('b', null, hit.title)];
+    if (isCharge || isPoint || isGeometry) {
+      const color = h('input', { type: 'color', value: look.color || U.toHex(defaultColor), 'aria-label': '颜色' });
+      color.addEventListener('input', () => saveLook({ color: color.value }));
+      children.push(h('label.row.wrap', null, h('span', null, '颜色'), color));
+    }
+    if (isCharge || isPoint) {
+      const size = K.slider({ label: isCharge ? '电荷显示大小' : '探针标记大小', min: 0.6, max: 2.4, step: 0.1, val: look.size || 1, on: v => saveLook({ size: v }) });
+      children.push(size);
+    }
+    const fx = U.store.get('ex:fx', { glow: W.r.fx.glow, reveal: W.r.fx.reveal });
+    const glow = K.check('电荷光晕脉动（画板级）', W.r.fx.glow, v => { W.r.fx.glow = v; fx.glow = v; U.store.set('ex:fx', fx); if (W.last) W.show(...W.last); });
+    const reveal = K.check('电场线逐步绘出（开启电场线后生效）', W.r.fx.reveal, v => { W.r.fx.reveal = v; fx.reveal = v; U.store.set('ex:fx', fx); if (v) W.r.playReveal(); });
+    children.push(h('hr'), h('small', null, '动画设置作用于整张画板，不改变电荷、场强或电势数据。'), glow, reveal);
+    menu.replaceChildren(...children);
+    menu.dataset.theme = EL.theme;
+    menu.hidden = false;
+    menu.style.left = '0px'; menu.style.top = '0px';
+    const box = menu.getBoundingClientRect(), x = Math.max(8, Math.min(e.clientX, innerWidth - box.width - 8)), y = Math.max(8, Math.min(e.clientY, innerHeight - box.height - 8));
+    menu.style.left = x + 'px'; menu.style.top = y + 'px';
   }
   // 地址参数 → 初始状态（纯函数，便于测试）
   X.route = function (search) {
@@ -44,13 +58,14 @@
     U.$('#stage').after(U.$('#caption')); U.$('#caption').classList.add('glass');
     U.$('#gl').addEventListener('contextmenu', openElementStyle);
     document.addEventListener('pointerdown', e => { if (!U.$('#elementStyle').contains(e.target)) U.$('#elementStyle').hidden = true; });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') U.$('#elementStyle').hidden = true; });
     X.renderChips(); X.renderList();
     U.$$('.modes button').forEach(b => b.addEventListener('click', () => X.setMode(b.dataset.mode)));
     U.$('#btnTheme').addEventListener('click', () => W.setTheme(EL.theme === 'dark' ? 'light' : 'dark'));
     U.$('#btnHome').addEventListener('click', () => W.r.cam.reset(W.AD * 1.2, false, true));
     U.$('#btnTop').addEventListener('click', () => W.align([0, 0, 1]));
-    U.$('#btnZin').addEventListener('click', () => { W.r.cam.zoom(1 / 1.2); W.r.draw(); });
-    U.$('#btnZout').addEventListener('click', () => { W.r.cam.zoom(1.2); W.r.draw(); });
+    U.$('#btnZin').addEventListener('click', () => { W.r.cam.zoomAt(1 / 1.2, W.r.cam.w / 2, W.r.cam.h / 2); W.r.draw(); });
+    U.$('#btnZout').addEventListener('click', () => { W.r.cam.zoomAt(1.2, W.r.cam.w / 2, W.r.cam.h / 2); W.r.draw(); });
     U.$('#btnFull').addEventListener('click', () => { const el = U.$('#stage'); document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen && el.requestFullscreen(); });
     U.$('#btnNew').addEventListener('click', () => { X.T.start(null, X.S.pb ? X.itemKey(X.S.pb) : X.S.empty ? (X.firstItem(X.S.empty) || {}).key : null); X.setMode('teacher'); });
     U.$('#btnEdit').addEventListener('click', () => { if (!X.S.pb) return U.toast('请先选择一道题。'); X.T.start(X.S.pb); X.setMode('teacher'); });
