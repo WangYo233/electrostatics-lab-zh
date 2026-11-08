@@ -74,9 +74,11 @@
       out.spheres.push({ p: s.p, r: rr, color: col }); out.glows.push({ p: s.p, r: rr * 3, color: col, a: 0.45 });
       if (L.labels) out.labels.push({ p: s.p, text: s.label + ' ' + X.qText(s.q).replace('+', '+ ').replace('−', '− '), cls: s.q > 0 ? 'pos' : 'neg' });
     }
+    const focusedPts = f && f.kind === 'plan' ? new Set([f.plan.d.pn]) : f && f.kind === 'terms' ? new Set(f.at) : f && f.kind === 'path' ? new Set([f.a, f.b]) : f && f.kind === 'point' ? new Set([f.at]) : f && f.kind === 'probe' ? new Set(f.names || []) : null;
     for (const n in R.pts) {
       const P = R.pts[n];
       if (!P.p || R.sources.some(s => s.label === n)) continue;
+      if (focusedPts && !focusedPts.has(n)) continue;
       if (P.vertex) { if (L.labels) out.labels.push({ p: M(P.p), text: n, cls: 'pt' }); continue; }
       MH.mark(out, M(P.p), L.labels ? n : null, C.mark, AD * 0.022);
     }

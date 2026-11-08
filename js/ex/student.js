@@ -2,7 +2,7 @@
 // 例题探究（学生）：选题 → 读题 → 作答（选项 A、B、C、D）→ 引导探究（先预测、后揭示）→ 查看解析
 (function (EL) {
   const U = EL.U, h = U.h, K = EL.UI, X = EL.EX, W = X.W, V = EL.V, VA = EL.VA;
-  const S = X.S = { pb: null, sol: null, qi: -1, step: 0, ans: {}, path: 0.3, res: {}, empty: null };
+  const S = X.S = { pb: null, sol: null, qi: -1, step: 0, ans: {}, path: 0.3, res: {}, empty: null, pathPlaying: false, pathRaf: 0 };
 
   X.renderList = function () {
     const mine = U.store.get('ex:mine', []), item = (pb, tag) => h('button', { type: 'button', class: 'ex-item' + (S.pb && S.pb.id === pb.id ? ' on' : ''), onclick: () => X.open(pb) },
@@ -59,6 +59,7 @@
 
   // 引导探究：场强题走三维合成步骤；路径题拖动观察；电势题列出各项；解析场显示观察点的读数；圆盘显示电荷对
   X.guide = function (i) {
+    if (S.pathRaf) cancelAnimationFrame(S.pathRaf); S.pathRaf = 0; S.pathPlaying = false;
     const o = S.sol.ans[i], R = S.sol.R;
     S.qi = i; S.step = 0; S.ans = {};
     if (o.focus === 'pairs') X.focus({ kind: 'pairs' });
@@ -77,11 +78,48 @@
     if (v) W.align(v === 'reset' ? 'reset' : v);
   };
   const fmtP = p => '(' + p.map(x => U.fmt(x, 3)).join(', ') + ')';
+  function drawPotentialCurve(canvas, R, a, b, s) {
+    const dpr = devicePixelRatio || 1, w = canvas.clientWidth, h0 = canvas.clientHeight;
+    if (!w || !h0) return;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h0 * dpr);
+    const g = canvas.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h0);
+    const vals = Array.from({ length: 101 }, (_, i) => { const x = 0.02 + 0.96 * i / 100, q = V.lerp(R.pts[a].p, R.pts[b].p, x); return [x, R.field(q).V]; }).filter(x => isFinite(x[1]));
+    if (!vals.length) return;
+    const lo = Math.min(...vals.map(x => x[1])), hi = Math.max(...vals.map(x => x[1])), span = hi - lo || 1;
+    const L = 38, T = 10, B = 22, RW = w - L - 8, RH = h0 - T - B;
+    const Xp = x => L + (x - 0.02) / 0.96 * RW, Yp = y => T + (hi - y) / span * RH;
+    const dark = EL.theme === 'dark'; g.strokeStyle = dark ? '#718096' : '#68778a'; g.fillStyle = dark ? '#e5edf7' : '#263446'; g.lineWidth = 1; g.font = '11px sans-serif';
+    g.beginPath(); g.moveTo(L, T); g.lineTo(L, T + RH); g.lineTo(L + RW, T + RH); g.stroke();
+    g.fillText('φ', 8, 13); g.fillText(a + ' → ' + b, Math.max(L + 4, w - 65), h0 - 4); g.fillText(U.fmt(hi, 3), 3, T + 4); g.fillText(U.fmt(lo, 3), 3, T + RH);
+    g.strokeStyle = '#f28e2b'; g.lineWidth = 2; g.beginPath(); vals.forEach((q, i) => i ? g.lineTo(Xp(q[0]), Yp(q[1])) : g.moveTo(Xp(q[0]), Yp(q[1]))); g.stroke();
+    const v = R.field(V.lerp(R.pts[a].p, R.pts[b].p, s)).V; if (isFinite(v)) { g.fillStyle = '#d1495b'; g.beginPath(); g.arc(Xp(s), Yp(v), 4, 0, Math.PI * 2); g.fill(); }
+  }
+  function animatePath() {
+    if (!S.pathPlaying) return;
+    S.path += 0.003; if (S.path > 0.98) S.path = 0.02;
+    updatePath(S.path);
+    S.pathRaf = requestAnimationFrame(animatePath);
+  }
+  function updatePath(value) {
+    if (!S.sol || S.qi < 0) return;
+    const o = S.sol.ans[S.qi], f = S.f;
+    S.path = value; f.s = value;
+    W.show(S.pb, S.sol, f);
+    const box = U.$('#caption'), range = box.querySelector('input[type="range"]'), number = box.querySelector('input[type="number"]');
+    if (range) range.value = value;
+    if (number && document.activeElement !== number) number.value = value.toFixed(3);
+    const R = S.sol.R, p = V.lerp(R.pts[f.a].p, R.pts[f.b].p, value), field = R.field(p), T = field.ok ? field.E : [0, 0, 0], t = V.norm(V.sub(R.pts[f.b].p, R.pts[f.a].p)), Ep = V.dot(T, t), th = V.len(T) > 1e-12 ? VA.ang(T, t) : 90, u = R.units;
+    const tip = !field.ok ? 'X 点处的场强未定义。' : V.len(T) <= 1e-12 ? 'X 点的合场强为零，此处电势沿路径的变化率为零。'
+      : '合场强与路径方向的夹角约为 ' + VA.f4(th) + '°，合场强沿路径方向的分量 E_∥ 约为 ' + VA.f4(Ep) + (u.E ? ' ' + u.E : '') + '。' +
+        (Ep > 1e-9 ? '夹角小于 90°，所以在 X 点附近沿路径电势降低。' : Ep < -1e-9 ? '夹角大于 90°，所以在 X 点附近沿路径电势升高。' : '合场强与路径垂直，所以在 X 点附近电势沿路径的变化率为零。');
+    const text = box.querySelector('.cap-t'); if (text) text.innerHTML = U.rich(tip);
+    const curve = box.querySelector('canvas.potential-curve'); if (curve) drawPotentialCurve(curve, R, f.a, f.b, value);
+  }
   X.renderCap = function () {
     const box = U.$('#caption'), f = S.f;
     if (!f || !S.pb) { box.hidden = true; return; }
     box.hidden = false;
-    const R = S.sol.R, u = R.units, o = S.sol.ans[S.qi], close = K.btn('退出探究', () => { S.qi = -1; X.focus(null); X.renderProblem(); W.r.cam.reset(W.AD * 1.2, false, true); }, 'mini');
+    const R = S.sol.R, u = R.units, o = S.sol.ans[S.qi], close = K.btn('退出探究', () => { S.pathPlaying = false; cancelAnimationFrame(S.pathRaf); S.pathRaf = 0; S.qi = -1; X.focus(null); X.renderProblem(); W.r.cam.reset(W.AD * 1.2, false, true); }, 'mini');
     if (f.kind === 'plan') {
       const st = o.plan[S.step], ans = S.ans[S.step], n = o.plan.length, kids = [h('div.cap-h', null, h('span.cap-n', null, '三维合成 ' + (S.step + 1) + ' / ' + n), h('b', { html: U.rich(st.title) }))];
       if (st.ask && ans == null) kids.push(h('p.cap-q', { html: '先预测：' + U.rich(st.ask.q) }), h('div.cap-opts', null, st.ask.options.map((v, j) => { const b = K.btn('', () => { S.ans[S.step] = v; X.focusStep(); }); b.innerHTML = '<b class="opt-l">' + X.letter(j) + '.</b> ' + U.rich(v); return b; }), K.btn('跳过预测', () => { S.ans[S.step] = ''; X.focusStep(); }, 'mini skip')));
@@ -96,11 +134,14 @@
     } else if (f.kind === 'path') {
       const a = R.pts[f.a].p, b = R.pts[f.b].p, p = V.lerp(a, b, f.s), s = R.field(p);
       const T = s.ok ? s.E : [0, 0, 0], t = V.norm(V.sub(b, a)), Ep = V.dot(T, t), th = V.len(T) > 1e-12 ? VA.ang(T, t) : 90;
-      const sl = K.slider({ label: '点 X 的位置 ' + f.a + 'X : ' + f.a + f.b, min: 0.02, max: 0.98, step: 0.01, val: f.s, on: v => { S.path = v; X.focus(Object.assign({}, f, { s: v })); } });
+      const sl = K.slider({ label: '点 X 的位置 ' + f.a + 'X : ' + f.a + f.b, min: 0.02, max: 0.98, step: 0.001, val: f.s, on: v => updatePath(v) });
+      const curve = h('canvas.potential-curve', { 'aria-label': '电势沿路径变化曲线' });
+      requestAnimationFrame(() => drawPotentialCurve(curve, R, f.a, f.b, f.s));
       const tip = !s.ok ? 'X 点处的场强未定义。' : V.len(T) <= 1e-12 ? 'X 点的合场强为零，此处电势沿路径的变化率为零。'
         : '合场强与路径方向的夹角约为 ' + VA.f4(th) + '°，合场强沿路径方向的分量 E_∥ 约为 ' + VA.f4(Ep) + (u.E ? ' ' + u.E : '') + '。' +
           (Ep > 1e-9 ? '夹角小于 90°，所以在 X 点附近沿路径电势降低。' : Ep < -1e-9 ? '夹角大于 90°，所以在 X 点附近沿路径电势升高。' : '合场强与路径垂直，所以在 X 点附近电势沿路径的变化率为零。');
       box.replaceChildren(h('div.cap-h', null, h('span.cap-n', null, '从 ' + f.a + ' 到 ' + f.b + ' 的路径'), h('b', null, '拖动点 X，观察合场强与路径方向的夹角')), sl,
+        h('div.cap-curve-wrap', null, curve), h('div.cap-nav', null, h('span'), K.btn(S.pathPlaying ? '暂停动画' : '播放路径', () => { S.pathPlaying = !S.pathPlaying; if (S.pathPlaying) S.pathRaf = requestAnimationFrame(animatePath); else { cancelAnimationFrame(S.pathRaf); S.pathRaf = 0; } X.renderCap(); }, 'mini')),
         h('p.cap-t', { html: U.rich(tip) }), h('div.cap-nav', null, h('span'), close));
     } else if (f.kind === 'probe') {
       const rows = [['观察点', '坐标 / L', '所在区域', 'φ', '|E|']];

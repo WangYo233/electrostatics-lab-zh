@@ -99,6 +99,13 @@
     nodes.forEach(function (n) { if (!(n === root || visible(n))) delete n.row; });
     var right = outline ? Math.max.apply(null, vis.map(function (n) { return colX[n.level] + labelW(n) + 14; })) : colX[deep] + 14 + maxW[deep];
     ctrT = [(right - 16) / 2, 0, 0];
+    var radialStep = deep ? Math.max(34, Math.min((W - 150) * 0.46 / deep, (H - 64) * 0.46 / deep)) : 0;
+    nodes.forEach(function (n) { n.t = [0, 0, 0]; });
+    for (var level = 1; level <= deep; level++) {
+      var ring = vis.filter(function (n) { return n.level === level; });
+      ring.forEach(function (n, i) { var a = -Math.PI / 2 + 2 * Math.PI * i / ring.length; n.t = [radialStep * level * Math.cos(a), radialStep * level * Math.sin(a), 0]; });
+    }
+    outline = false; ctrT = [0, 0, 0];
   }
 
   // ---------- 视图 ----------

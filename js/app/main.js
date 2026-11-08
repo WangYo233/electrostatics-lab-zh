@@ -308,7 +308,7 @@
   };
 
   // 与首页相同的三大类（按学习进程）
-  A.CATS = [['一、基础模型', [1, 2]], ['二、对称模型', [4, 6, 5]], ['三、拓展与创作', [7, 8, 3]]];
+  A.CATS = [['一、基础模型', [1, 2]], ['二、对称模型', [4, 6, 5]], ['三、拓展与创作', [7, 8, 3]], ['四、例题与题目', []]];
   A.catOf = m => { const c = A.CATS.find(([, ids]) => ids.includes(m.id)); return c ? c[0].replace(/^.、/, '') : ''; };
   A.boot = function () {
     const id = new URLSearchParams(location.search).get('m') || '1', m = EL.model(id) || EL.model(1);
@@ -316,7 +316,7 @@
     U.$('#labTitle').textContent = m.code + ' ' + m.title;
     const CATS = A.CATS;
     // 与首页一致：例题探究排在“二、对称模型”末尾，题目添加排在“三、拓展与创作”末尾；选中后跳转到例题页
-    const LINKS = { 1: [['link:ex', '例题探究']], 2: [['link:add', '题目添加']] }, HREF = { 'link:ex': 'examples.html', 'link:add': 'examples.html?mode=add' };
+    const LINKS = { 3: [['link:ex', '例题探究'], ['link:add', '题目添加']] }, HREF = { 'link:ex': 'examples.html', 'link:add': 'examples.html?mode=add' };
     U.$('#modelSel').replaceChildren(...CATS.map(([n, ids], g) => h('optgroup', { label: n }, ids.map(i => EL.model(i)).filter(Boolean).map(x => h('option', { value: x.id, selected: x === m }, x.code + ' ' + x.title)).concat((LINKS[g] || []).map(([v, t]) => h('option', { value: v }, t))))));
     U.$('#modelSel').addEventListener('change', e => { const v = e.target.value; if (HREF[v]) location.href = HREF[v]; else location.search = '?m=' + v; });
     A.init(m);
@@ -386,7 +386,6 @@
     });
     on('#btnSave', () => { U.store.set(draftKey(), A.snapshot()) ? U.toast('草稿已保存在本浏览器中。') : (U.download('草稿_' + A.st.model.code + '.json', A.snapshot()), U.toast('浏览器存储不可用，已改为下载 JSON 备份文件。')); });
     on('#btnLoad', () => { const d = U.store.get(draftKey(), null); if (!d) return U.toast('本浏览器中没有这个模型的草稿。'); try { A.restore(d); U.toast('草稿已载入。'); } catch (e) { U.toast(e.message); } });
-    on('#btnExport', () => U.download('草稿_' + A.st.model.code + '_' + A.st.model.title + '.json', A.snapshot(), 'application/json'));
     on('#btnImport', () => U.$('#importFile').click());
     U.$('#importFile').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { A.restore(t); U.toast('文件已导入。'); } catch (er) { U.toast('导入失败：' + er.message); } }); e.target.value = ''; });
     on('#btnPng', () => { const a = h('a', { href: A.r.snapshot(), download: '画板_' + A.st.model.code + '.png' }); document.body.append(a); a.click(); a.remove(); });

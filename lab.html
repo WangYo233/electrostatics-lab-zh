@@ -37,8 +37,8 @@
     </nav>
     <div class="filemenu">
       <div class="hist" role="group" aria-label="撤销与恢复">
-        <button type="button" id="btnUndo" title="撤销上一步操作（Ctrl+Z）" aria-keyshortcuts="Control+Z" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 5 3.5 9l4 4M4 9h8a4.5 4.5 0 0 1 0 9H9"/></svg><span>撤销</span></button>
-        <button type="button" id="btnRedo" title="恢复撤销的操作（Ctrl+Y 或 Ctrl+Shift+Z）" aria-keyshortcuts="Control+Y Control+Shift+Z" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 5l4 4-4 4M16 9H8a4.5 4.5 0 0 0 0 9h3"/></svg><span>恢复</span></button>
+        <button type="button" id="btnUndo" title="撤销上一步操作（Ctrl+Z）" aria-label="撤销" aria-keyshortcuts="Control+Z" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 5 3.5 9l4 4M4 9h8a4.5 4.5 0 0 1 0 9H9"/></svg></button>
+        <button type="button" id="btnRedo" title="恢复撤销的操作（Ctrl+Y 或 Ctrl+Shift+Z）" aria-label="恢复" aria-keyshortcuts="Control+Y Control+Shift+Z" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 5l4 4-4 4M16 9H8a4.5 4.5 0 0 0 0 9h3"/></svg></button>
       </div>
       <details class="menu">
         <summary title="保存草稿或导出文件">文件 ▾</summary>
@@ -46,7 +46,6 @@
           <button type="button" id="btnSave" role="menuitem">保存草稿 <kbd>本浏览器</kbd></button>
           <button type="button" id="btnLoad" role="menuitem">载入草稿</button>
           <hr>
-          <button type="button" id="btnExport" role="menuitem">导出 JSON 文件 <kbd>跨设备</kbd></button>
           <button type="button" id="btnImport" role="menuitem">导入 JSON 文件</button>
           <button type="button" id="btnPng" role="menuitem">保存画板图片 <kbd>PNG</kbd></button>
           <hr>
@@ -144,7 +143,7 @@
         </details>
         <details class="acc" id="deriveBox" open hidden><summary>合成推导</summary><div id="derive"></div></details>
         <details class="acc" id="geoBox"><summary>几何关系与分解</summary><div id="geo"></div></details>
-        <details class="acc" id="curveBox" open><summary>同步曲线</summary><canvas id="curves"></canvas><div id="curveLegend" class="clegend"></div></details>
+        <details class="acc" id="curveBox" open><summary>同步曲线</summary><div class="curve-tools"><button type="button" id="curveZoomOut" title="缩小曲线" aria-label="缩小曲线">−</button><button type="button" id="curveZoomIn" title="放大曲线" aria-label="放大曲线">＋</button><button type="button" id="curveFull" title="全屏曲线" aria-label="全屏曲线">⛶</button></div><canvas id="curves"></canvas><div id="curveLegend" class="clegend"></div></details>
         <details class="acc" id="compBox"><summary>自由合成</summary><div id="comp"></div></details>
       </section>
       <section class="insp" data-for="record">

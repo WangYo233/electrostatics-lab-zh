@@ -30,7 +30,7 @@ body.lab { height: 100vh; display: flex; flex-direction: column; overflow: hidde
 .home-btn:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.28); }
 .home-btn:focus-visible, .hist button:focus-visible { outline: 2px solid #8fa4ff; outline-offset: 2px; }
 .hist { display: inline-flex; border: 1px solid rgba(255,255,255,.14); border-radius: 7px; overflow: hidden; }
-.hist button { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 9px; border: 0; background: none; color: var(--chrome-ink); font-size: 13px; white-space: nowrap; }
+.hist button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 28px; padding: 0; border: 0; background: none; color: var(--chrome-ink); font-size: 13px; white-space: nowrap; }
 .hist button + button { border-left: 1px solid rgba(255,255,255,.14); }
 .hist button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .hist button:hover:not(:disabled) { background: rgba(255,255,255,.1); }

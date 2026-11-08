@@ -29,7 +29,6 @@
     <div class="filemenu">
       <a class="home-btn" href="index.html" title="回到首页" aria-label="回到首页"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 9.5 10 3.5l7 6M5 8v8.5h3.6v-5h2.8v5H15V8"/></svg><span>回到首页</span></a>
       <a class="present-btn" href="lab.html?m=1">模型探究</a>
-      <button type="button" id="btnTheme" class="ico" title="切换画板主题" aria-label="切换画板主题">◐</button>
     </div>
   </header>
   <div class="ex-work">
@@ -47,9 +46,15 @@
         <canvas id="gl" aria-label="三维模型。拖动可旋转视角，滚动滚轮可缩放。"></canvas>
         <div class="grain" aria-hidden="true"></div>
         <div id="labels" class="labels" aria-hidden="true"></div>
-        <div class="tools" role="toolbar"><button type="button" id="btnHome" title="恢复标准视角" aria-label="恢复标准视角">⌂</button></div>
+        <div class="tools" role="toolbar" aria-label="视图工具">
+          <button type="button" id="btnHome" title="恢复标准视角" aria-label="恢复标准视角">⌂</button>
+          <button type="button" id="btnTop" title="切换到俯视" aria-label="切换到俯视">⊤</button>
+          <button type="button" id="btnZin" title="放大画板" aria-label="放大画板">＋</button>
+          <button type="button" id="btnZout" title="缩小画板" aria-label="缩小画板">－</button>
+          <button type="button" id="btnFull" title="切换全屏" aria-label="切换全屏">⛶</button>
+        </div>
         <div class="caption" id="caption" aria-live="polite" hidden></div>
-        <div class="stagebar"><div class="sb-mid"><span>显示内容</span></div><div class="sb-layers" id="sbLayers"></div></div>
+        <div class="stagebar"><div class="sb-mid"><span>显示内容</span></div><div class="sb-layers" id="sbLayers"></div><button type="button" id="btnTheme" class="theme-toggle" title="切换画板主题" aria-label="切换画板主题">◐</button></div>
       </div>
     </main>
     <aside class="ex-right">
