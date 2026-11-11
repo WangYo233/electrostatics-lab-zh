@@ -29,7 +29,7 @@
   A.drawWizard = function (c, sc) {
     const cs = c.cs;
     if (!cs || !cs.steps.d) return;
-    const out = VA.draw(cs.steps, cs.k, { labels: [] }, { MH, C: EL.C, R: c.bound, vs: c.st.style.vecScale * A.probeVecK(c) });
+    const out = VA.draw(cs.steps, cs.k, { labels: [] }, { MH, C: EL.C, step: cs.i, R: c.bound, vs: c.st.style.vecScale * A.probeVecK(c) });
     for (const key in out) sc[key] = (sc[key] || []).concat(out[key]);
   };
   A.startWizard = function (method, only) {

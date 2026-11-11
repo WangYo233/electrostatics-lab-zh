@@ -103,7 +103,7 @@
     return { n };
   };
   // 方向描述：与某两点连线同向，或垂直于某三点确定的平面
-  VA.describe = function (v, named) {
+  VA.describe = function (v, named, refs) {
     const L = V.len(v);
     if (!(L > 1e-12)) return '为零';
     const u = V.mul(v, 1 / L), N = (named || []).slice(0, 16);
@@ -111,13 +111,13 @@
       const d = V.sub(N[j].p, N[i].p), l = V.len(d);
       if (l < 1e-9) continue;
       const c = V.dot(u, d) / l;
-      if (c > 0.99999) return '与 ' + N[i].n + '→' + N[j].n + ' 同向';
-      if (c < -0.99999) return '与 ' + N[j].n + '→' + N[i].n + ' 同向';
+      if (c > 0.99999) { if (refs) refs.push(N[i], N[j]); return '与 ' + N[i].n + '→' + N[j].n + ' 同向'; }
+      if (c < -0.99999) { if (refs) refs.push(N[i], N[j]); return '与 ' + N[j].n + '→' + N[i].n + ' 同向'; }
     }
     for (let i = 0; i < N.length; i++) for (let j = i + 1; j < N.length; j++) for (let k = j + 1; k < N.length; k++) {
       const n = V.cross(V.sub(N[j].p, N[i].p), V.sub(N[k].p, N[i].p)), l = V.len(n);
       if (l < 1e-9) continue;
-      if (Math.abs(V.dot(u, n)) / l > 0.99999) return '垂直于平面 ' + N[i].n + N[j].n + N[k].n;
+      if (Math.abs(V.dot(u, n)) / l > 0.99999) { if (refs) refs.push(N[i], N[j], N[k]); return '垂直于平面 ' + N[i].n + N[j].n + N[k].n; }
     }
     return null;
   };
@@ -204,8 +204,12 @@
   const simInfo = function (g, d) {
     const [a, b] = g.items, opp = Math.sign(a.q) !== Math.sign(b.q), E = a.mag, r = a.r, ab = V.dist(a.p, b.p);
     const pos = opp ? (a.q > 0 ? a : b) : a, neg = opp ? (a.q > 0 ? b : a) : b;
-    const used = new Set((d.named || []).map(x => x.n).concat(d.parts.map(x => x.label), [d.pn]));
-    const mn = ['M', 'N', 'K', 'H'].find(x => !used.has(x)) || 'M', mid = V.lerp(a.p, b.p, 0.5), pm = V.dist(d.P, mid);
+    const mid = V.lerp(a.p, b.p, 0.5), pm = V.dist(d.P, mid);
+    const known = (d.named || []).find(x => x.n !== d.pn && !d.parts.some(p => p.label === x.n) && V.dist(x.p, mid) < 1e-9);
+    const used = new Set((d.named || []).map(x => x.n).concat(d.parts.map(x => x.label), [d.pn], d.groups.map(g => g.midName)));
+    let mn = g.midName || (known && known.n) || ['M', 'N', 'K', 'H'].find(x => !used.has(x));
+    for (let i = 1; !mn; i++) if (!used.has('M' + i)) mn = 'M' + i;
+    g.midName = mn;
     const apex = deg(Math.acos(U.clamp((2 * r * r - ab * ab) / (2 * r * r), -1, 1)));
     return { a, b, opp, E, r, ab, pos, neg, mn, mid, pm, apex, th: opp ? 180 - apex : apex };
   };
@@ -231,6 +235,7 @@
         why: '菱形的对角线 ' + nm + ' 与三角形 ' + tri + ' 中的边 ' + mn + pn + ' 对应，两个场源电荷' + (toP ? '都带正电，所以 ' : '都带负电，所以 ') + nm + ' 的方向' + right + '。' };
     }
     return { id: 'similar', g, sim: s, th: s.th, title: '用相似三角形求 ' + s.a.n + ' 与 ' + s.b.n + ' 的合成', text, tex, ask,
+      setup: '设 ' + mn + ' 为线段 ' + s.a.label + s.b.label + ' 的中点。',
       view: V.cross(V.sub(s.a.p, d.P), V.sub(s.b.p, d.P)) };
   };
   VA.simSumStep = function (g, d, hide, dir) {
@@ -335,7 +340,8 @@
     const done = new Set();
     steps.slice(0, k + 1).forEach(s => { if ((s.id === 'pairSum' || s.id === 'chainSum') && s.g) s.g.items.forEach(x => done.add(x)); });
     const finished = at('combine') >= 0 || (at('check') >= 0 && d.groups.length === 1);
-    const focus = steps[k] && steps[k].g ? new Set(steps[k].g.items) : null;
+    const active = steps[o.step == null ? k : o.step], pending = o.step > k;
+    const focus = active && active.g ? new Set(active.g.items) : null;
     const al = x => finished ? 0.2 : done.has(x) && !(focus && focus.has(x)) ? 0.25 : focus && !focus.has(x) ? 0.3 : 1;
     // 带标签的矢量：lf 为标签沿矢量的位置（1.06 为箭头外侧）；重合的矢量错开标签位置
     const vec = (p, v, color, text, cls, width, lf) => {
@@ -343,11 +349,30 @@
       MH.vec(out, p, v, color, null, null, width);
       if (text) (out.labels = out.labels || []).push({ p: V.addS(p, v, lf || 1.06), text, cls: (cls || '') + ' vec', kind: 'vectors' });
     };
+    // Reference geometry is visible before a prediction; the solution construction stays gated by k.
+    if (active && pending && active.sim) {
+      const m = active.sim;
+      MH.tri(out, [M(m.a.p), P, M(m.b.p)], C.pot, 0.04);
+      MH.dash(out, P, M(m.mid), C.ang);
+      MH.mark(out, M(m.mid), m.mn, C.mark, Rr * 0.018);
+    }
+    if (active && active.id === 'combine' && pending) for (const g of d.groups) {
+      if (g.type === 'single') vec(P, S(g.S), C.part, g.name, 'part', 2.8);
+    }
+    if (active && !pending) {
+      const refs = [], vectors = active.id === 'combine' ? d.groups.map(g => g.S) : active.g ? [active.g.S] : active.id === 'check' ? [d.T] : [];
+      vectors.forEach(v => VA.describe(v, d.named, refs));
+      for (const q of refs) {
+        if (d.parts.some(x => x.label === q.n) || q.n === d.pn || (out.labels || []).some(l => l.text === q.n)) continue;
+        MH.mark(out, M(q.p), q.n, C.mark, Rr * 0.018);
+        MH.dash(out, P, M(q.p), C.guide);
+      }
+    }
     if (cur === 'list' || cur === 'coordR') for (const x of d.parts) { MH.dash(out, P, M(x.p), C.guide); (out.labels = out.labels || []).push({ p: V.lerp(P, M(x.p), 0.55), text: 'r=' + VA.cell(x.r), cls: 'pt', kind: 'vectors' }); }
     // 方向相同的分场强（例如共线的 E_T1、E_T2）沿垂直方向错开，标签分别放在箭头外侧与中部
     const offs = VA.offsets(d.parts.map(x => x.E), Rr * 0.035), rank = offs.rank;
     d.parts.forEach((x, i) => { const a = al(x); vec(V.add(P, offs[i]), S(x.E), [...(x.q > 0 ? C.pos : C.neg), a], a > 0.5 ? x.n : null, x.q > 0 ? 'pos' : 'neg', 2.4, rank[i] % 2 ? 0.55 : 1.06); });
-    const s = steps[k];
+    const s = pending ? null : steps[k];
     if (s && s.id === 'angle') {
       const [a, b] = s.g.items;
       MH.tri(out, [P, M(a.p), M(b.p)], C.pot, 0.08);
@@ -358,13 +383,14 @@
     if (s && (s.id === 'similar' || s.id === 'pairSum') && s.sim) {
       const m = s.sim, g = s.g;
       if (m.opp) {
+        MH.mark(out, M(m.mid), m.mn, C.mark, Rr * 0.018);
         MH.tri(out, [M(m.pos.p), P, M(m.neg.p)], C.pot, 0.08);
         vec(V.add(P, S(m.pos.E)), S(m.neg.E), [...(m.neg.q > 0 ? C.pos : C.neg), 0.9], m.neg.n + '′', 'neg', 2, 0.55);
         if (s.id === 'similar') MH.arc(out, M(m.pos.p), V.sub(P, M(m.pos.p)), V.sub(M(m.neg.p), M(m.pos.p)), Rr * 0.08, '∠' + d.pn + m.pos.label + m.neg.label);
       } else {
         MH.tri(out, [M(m.a.p), M(m.mid), P], C.pot, 0.08);
         MH.dash(out, P, M(m.mid), C.ang);
-        (out.labels = out.labels || []).push({ p: M(m.mid), text: m.mn, cls: 'pt', kind: 'points' });
+        MH.mark(out, M(m.mid), m.mn, C.mark, Rr * 0.018);
         MH.dash(out, V.add(P, S(m.a.E)), V.add(P, S(g.S))); MH.dash(out, V.add(P, S(m.b.E)), V.add(P, S(g.S)));
       }
       if (s.id === 'similar') { MH.arc(out, P, m.a.E, m.b.E, Rr * 0.06, 'θ=' + r1(m.th) + '°'); MH.dash(out, P, V.add(P, S(g.S)), C.sum); }

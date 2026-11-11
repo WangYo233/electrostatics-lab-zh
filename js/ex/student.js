@@ -75,8 +75,8 @@
   X.focusStep = function () {
     const o = S.sol.ans[S.qi], st = o.plan[S.step], rev = !st.ask || S.ans[S.step] != null;
     const k = rev ? S.step : S.step - 1;
-    X.focus({ kind: 'plan', plan: o.plan, k: Math.max(0, k), hide: S.step > 0 });
-    const v = (o.plan[Math.max(0, k)] || {}).view;
+    X.focus({ kind: 'plan', plan: o.plan, k: Math.max(0, k), step: S.step, hide: S.step > 0 });
+    const v = st.view;
     if (v) W.align(v === 'reset' ? 'reset' : v);
   };
   const fmtP = p => '(' + p.map(x => U.fmt(x, 3)).join(', ') + ')';
@@ -124,6 +124,7 @@
     const R = S.sol.R, u = R.units, o = S.sol.ans[S.qi], close = K.btn('退出探究', () => { X.stopPath(); S.qi = -1; X.focus(null); X.renderProblem(); W.r.cam.reset(W.AD * 1.2, false, true); }, 'mini');
     if (f.kind === 'plan') {
       const st = o.plan[S.step], ans = S.ans[S.step], n = o.plan.length, kids = [h('div.cap-h', null, h('span.cap-n', null, '三维合成 ' + (S.step + 1) + ' / ' + n), h('b', { html: U.rich(st.title) }))];
+      if (st.ask && ans == null && st.setup) kids.push(h('p.cap-t', { html: U.rich(st.setup) }));
       if (st.ask && ans == null) kids.push(h('p.cap-q', { html: '先预测：' + U.rich(st.ask.q) }), h('div.cap-opts', null, st.ask.options.map((v, j) => { const b = K.btn('', () => { S.ans[S.step] = v; X.focusStep(); }); b.innerHTML = '<b class="opt-l">' + X.letter(j) + '.</b> ' + U.rich(v); return b; }), K.btn('跳过预测', () => { S.ans[S.step] = ''; X.focusStep(); }, 'mini skip')));
       else {
         const aL = st.ask ? X.optLetter(st.ask.options, st.ask.a) + '. ' + U.rich(st.ask.a) : '';

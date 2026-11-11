@@ -29,6 +29,7 @@
   A.capNodes = function (cs, onAns, nav) {
     const s = cs.step, kids = [h('div.cap-h', null, h('span.cap-n', null, nav.label), h('b', { html: U.rich(s.title) }))];
     if (s.ask && cs.ans == null) {
+      if (s.setup) kids.push(h('p.cap-t', { html: U.rich(s.setup) }));
       kids.push(h('p.cap-q', { html: '先预测：' + U.rich(s.ask.q) }),
         h('div.cap-opts', null, s.ask.options.map(o => { const b = K.btn('', () => onAns(o)); b.innerHTML = U.rich(o); return b; }), K.btn('跳过预测', () => onAns(''), 'mini skip')));
     } else {
@@ -54,7 +55,7 @@
   A.afterStep = function () {
     A.update();
     const cs = A.c.cs;
-    if (cs && cs.k >= 0) { const v = cs.steps[cs.k].view; if (v) A.alignView(typeof v === 'function' ? v(A.c) : v); }
+    if (cs) { const v = cs.step.view; if (v) A.alignView(typeof v === 'function' ? v(A.c) : v); }
     A.renderCaption(true); A.renderStepList(); A.renderDerive(); A.renderComp();
   };
   // 分析工作区中的向导步骤概览

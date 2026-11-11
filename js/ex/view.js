@@ -114,7 +114,7 @@
       const look = W.appearance['point:' + n] || {};
       MH.mark(out, M(P.p), L.labels ? n : null, look.color ? U.hex(look.color) : C.mark, AD * 0.022 * (look.size || 1));
     }
-    if (f && f.kind === 'plan' && f.plan) VA.draw(f.plan, f.k, out, { MH, C, map: M, R: AD * 1.15 });
+    if (f && f.kind === 'plan' && f.plan) VA.draw(f.plan, f.k, out, { MH, C, map: M, step: f.step, R: AD * 1.15 });
     if (f && f.kind === 'path') {
       const a = R.pts[f.a].p, b = R.pts[f.b].p, p = V.lerp(a, b, f.s), s = R.field(p);
       out.lines.push({ pts: [M(a), M(b)], color: C.path, width: 1.6, dash: [0.12, 0.08] });
