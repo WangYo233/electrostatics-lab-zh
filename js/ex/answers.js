@@ -127,7 +127,7 @@
         if (m < 1e-9) return { q, ok: false, err: q.at + ' 点的电场强度为零，没有方向，夹角没有意义。' };
         if (V.len(d) < 1e-9) return { q, ok: false, err: q.a + '、' + q.b + ' 两点重合，不能确定直线，夹角没有意义。' };
         const th = VA.ang(s.E, d); o.value = th; o.answer = (Math.round(th * 10) / 10) + '°'; o.options = VA.angOpts(th);
-        o.expl = [{ t: e.t, tex: e.tex }, { t: q.at + ' 点的场强方向' + o.dir + '。由场强与 ' + q.a + '、' + q.b + ' 两点位置差矢量的数量积求得，夹角为 ' + o.answer + '。' }];
+        o.expl = [{ t: e.t, tex: e.tex }, { t: q.at + ' 点的场强方向' + o.dir + '。由场强与 ' + q.a + '、' + q.b + ' 两点位置差矢量的数量积求得，夹角为 ' + o.answer + '。', tex: R_`\vec u=\vec r_{${q.b}}-\vec r_{${q.a}},\qquad\cos\alpha=\frac{\vec E\cdot\vec u}{|\vec E||\vec u|}=${TX(Math.cos(o.value * Math.PI / 180))},\qquad\alpha=${TX(o.value)}^\circ` }];
       }
       return o;
     }

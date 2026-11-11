@@ -46,7 +46,7 @@
       else { const t = h('input.cell', { type: 'text', placeholder: '例如 √3 或 2/3', 'aria-label': '填写答案', style: 'width:9em' }); inp = h('div.row.wrap', null, t, K.btn('检查答案', () => X.check(i, t.value))); }
       return h('section.qcard' + (S.qi === i ? '.on' : ''), null, h('div.qh', null, h('span.qn', null, '(' + (i + 1) + ')'), h('p', { html: U.rich(X.qText2(q, pb)) })), inp, fb,
         o.ok ? h('div.btns', null, K.btn('引导探究', () => X.guide(i), S.qi === i ? 'on' : ''), K.btn(r && r.exp ? '收起解析' : '查看解析', () => { S.res[i] = Object.assign(S.res[i] || {}, { exp: !(r && r.exp), show: true }); X.renderProblem(); }), K.btn('显示答案', () => { S.res[i] = Object.assign(S.res[i] || {}, { show: true }); X.renderProblem(); }, 'ghost')) : null,
-        r && r.exp ? h('div.exp', null, ...X.explain(o).map(l => h('div', null, h('p', { html: U.rich(l.t) }), l.tex ? h('div.formula', { html: EL.texBlock(l.tex) }) : null))) : null);
+        r && r.exp ? h('div.exp', null, ...X.explain(o).map(l => h('div', null, h('p', { html: U.rich(l.t) }), l.tex || l.rows ? h('div.formula', { html: VA.stepHTML(l) }) : null))) : null);
     });
     box.replaceChildren(h('h2', null, pb.title), h('div.stem', null, h('p', { html: U.rich(pb.stem || X.stem(pb, sol.R)) }), pb.note ? h('p.note', { html: U.rich(pb.note) }) : null), ...cards);
   };
@@ -77,7 +77,7 @@
     const k = rev ? S.step : S.step - 1;
     X.focus({ kind: 'plan', plan: o.plan, k: Math.max(0, k), step: S.step, hide: S.step > 0 });
     const v = st.view;
-    if (v) W.align(v === 'reset' ? 'reset' : v);
+    if (v) W.align(v === 'reset' ? 'reset' : v, st.tetra ? o.plan.d.parts.map(s => W.M(s.p)).concat([W.M(st.tetra.P), W.M(st.tetra.H)]) : null);
   };
   const fmtP = p => '(' + p.map(x => U.fmt(x, 3)).join(', ') + ')';
   function drawPotentialCurve(canvas, R, a, b, s) {

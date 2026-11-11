@@ -114,3 +114,7 @@ svg.fig .fe.hl circle, svg.fig circle.fe.hl { stroke: #E69F00; stroke-width: 3; 
 svg.fig .fl.hl { fill: #B35C00; font-weight: 700; }
 #theoryBody math [data-mk] { cursor: pointer; }
 #theoryBody math [data-mk].hl { background: #FFE7B3; border-radius: 3px; color: #8A4B00; }
+
+/* Length proofs need enough room below the model; keep the construction unobscured. */
+body.lab:not([data-mode="theory"]) .view > .caption:has(.cap-proof), body.ex .view > .caption:has(.cap-proof) { max-height: min(46vh, 420px); }
+.formula .cap-tbl th, .formula .cap-tbl td { border-color: var(--line); }

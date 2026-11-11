@@ -18,6 +18,13 @@
     if (animate && mode === this.mode) return this.tween(to, 650);
     this.tw = null; Object.assign(this, to); this.mode = mode;
   };
+  // Fit all construction points with margin for their labels.
+  Camera.prototype.frame = function (points) {
+    const target = [0, 1, 2].map(i => (Math.min(...points.map(p => p[i])) + Math.max(...points.map(p => p[i]))) / 2);
+    const radius = Math.max(...points.map(p => V.dist(p, target)), 0.1);
+    const halfAngle = Math.atan(Math.tan(0.31) * Math.min(1, this.w / this.h));
+    return { target, dist: radius / Math.sin(halfAngle) * 1.15 };
+  };
   Camera.prototype.top = function () { this.tween({ theta: -Math.PI / 2, phi: 1.5607 }, 600); };
   Camera.prototype.tween = function (to, ms) {
     const from = { theta: this.theta, phi: this.phi, dist: this.dist, half: this.half, target: this.target.slice(), pan: this.pan.slice() };

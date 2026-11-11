@@ -61,3 +61,7 @@ body.present .caption .cap-h b { font-size: 18px; }
 body.present .labels { --lbl: 1.25; }
 body.present .hud { font-size: 14px; width: 270px; }
 @media (max-width: 900px) { .caption { max-height: min(30vh, 220px); font-size: 12.5px; } .legend { display: none; } }
+
+/* Keep guide controls reachable while reading a long derivation. */
+.caption > .cap-nav:last-child { position: sticky; bottom: -8px; z-index: 1; padding: 6px 0 2px; background: #151e30; }
+.caption[data-theme="light"] > .cap-nav:last-child { background: #fff; }

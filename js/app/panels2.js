@@ -123,23 +123,24 @@
     const g = [1, 2].map(gi => parts.filter(x => cp.groups[x.i] === gi));
     if (g[0].length && g[1].length) {
       const s1 = g[0].reduce((a, x) => V.add(a, x.E), [0, 0, 0]), s2 = g[1].reduce((a, x) => V.add(a, x.E), [0, 0, 0]);
-      const th = Math.acos(U.clamp(V.dot(s1, s2) / (V.len(s1) * V.len(s2)), -1, 1)) * 180 / Math.PI;
+      const lengths = V.len(s1) * V.len(s2), th = lengths > 1e-24 ? Math.acos(U.clamp(V.dot(s1, s2) / lengths, -1, 1)) * 180 / Math.PI : null;
       out.push(K.group('分组部分和',
         h('p', null, 'Σ₁ = ' + g[0].map(x => 'E' + x.label).join('+') + '，|Σ₁| = ' + EL.VA.cell(V.len(s1))),
         h('p', null, 'Σ₂ = ' + g[1].map(x => 'E' + x.label).join('+') + '，|Σ₂| = ' + EL.VA.cell(V.len(s2))),
-        h('p', null, 'Σ₁ 与 Σ₂ 的夹角为 ' + U.fmt(th, 4) + '°' + (Math.abs(th - 90) < 0.05 ? '，两者互相垂直。' : '。'))));
+        h('p', null, th == null ? '部分和为零时夹角无定义。' : '坐标计算核对：Σ₁ 与 Σ₂ 的夹角约为 ' + U.fmt(th, 4) + '°；几何依据见“开始合成”中的距离推导。')));
     } else out.push(K.tip('在“分组”列中把对称的分场强分别放进 Σ₁ 和 Σ₂，先求出两组的部分和，再合成。', 'ⓘ 分组合成'));
     const pick = cp.pick.map(i => parts.find(x => x.i === i)).filter(Boolean);
     if (pick.length === 2) {
       const a = pick[0].E, b = pick[1].E, la = V.len(a), lb = V.len(b), cs = U.clamp(V.dot(a, b) / (la * lb), -1, 1), deg = Math.acos(cs) * 180 / Math.PI;
-      const ex = K.exactTrig(deg), m2 = la * la + lb * lb + 2 * la * lb * cs, n = V.cross(a, b);
+      const r1 = V.dist(c.probe.pos, c.sources[pick[0].i].p), r2 = V.dist(c.probe.pos, c.sources[pick[1].i].p), distance = V.dist(c.sources[pick[0].i].p, c.sources[pick[1].i].p);
+      const m2 = Math.max(0, la * la + lb * lb + 2 * la * lb * cs), n = V.cross(a, b);
       const others = parts.filter(x => !pick.includes(x)).map(x => 'E' + x.label + ' 与该平面的夹角为 ' + U.fmt(Math.asin(U.clamp(Math.abs(V.dot(V.norm(x.E), V.norm(n))), 0, 1)) * 180 / Math.PI, 3) + '°');
       out.push(K.group('两两合成：E' + pick[0].label + ' 与 E' + pick[1].label,
         K.check('显示所在平面', cp.plane, v => { cp.plane = v; A.update(); }),
         V.len(n) > 1e-12 ? K.btn('正视该平面', () => A.alignView(n), 'mini') : null,
         others.length && V.len(n) > 1e-12 ? h('p.note', null, others.join('；') + '（夹角为 0° 表示共面）。') : null,
-        h('p', null, '夹角 θ = ' + U.fmt(deg, 4) + '°'),
-        h('p', null, 'cos θ = ' + (ex ? ex.cos + '（精确值）' : U.fmt(cs, 4) + '（近似值）') + '，sin θ = ' + (ex ? ex.sin : U.fmt(Math.sin(deg * Math.PI / 180), 4))),
+        h('p', null, '由场源三角形的余弦定理及电荷正负号求夹角。r₁、r₂ 为探针到两场源的距离，d 为场源间距。夹角读数 θ ≈ ' + U.fmt(deg, 4) + '°。'),
+        h('div.formula', { html: EL.texBlock(String.raw`r_1=${EL.VA.texV(r1)},\quad r_2=${EL.VA.texV(r2)},\quad d=${EL.VA.texV(distance)}\qquad\cos\theta=\operatorname{sgn}(q_1q_2)\frac{r_1^2+r_2^2-d^2}{2r_1r_2}\approx ${U.fmt(cs, 6)}`) }),
         h('div.formula', { html: EL.texBlock(String.raw`|\vec E_1+\vec E_2|^2=E_1^2+E_2^2+2E_1E_2\cos\theta`) }),
         h('p', null, '|E' + pick[0].label + '+E' + pick[1].label + '| = √' + U.fmt(m2, 5) + ' = ' + EL.VA.cell(Math.sqrt(m2)) + ' kQ/L²')));
     } else out.push(K.note('在“两两”列中勾选两个分场强，即可查看它们的合成。'));

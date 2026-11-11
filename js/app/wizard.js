@@ -94,6 +94,7 @@
         h('div.row.wrap', null, K.select('', labels.map(x => [x, x]), g.angle[0], v => { g.angle[0] = v; A.update(); A.renderGeo(); }), h('span', null, '与'),
           K.select('', labels.map(x => [x, x]), g.angle[1], v => { g.angle[1] = v; A.update(); A.renderGeo(); })),
         h('p', { html: U.rich('∠' + a.label + n + b.label + ' = ' + U.fmt(geoAng, 4) + '°；E_' + a.label + ' 与 E_' + b.label + ' 的夹角为 ' + U.fmt(fieldAng, 4) + '°。') }),
+        h('div.formula', { html: EL.texBlock(String.raw`\cos\angle ${a.label}${n}${b.label}=\frac{r_{${a.label}}^2+r_{${b.label}}^2-|${a.label}${b.label}|^2}{2r_{${a.label}}r_{${b.label}}}=${VA.texV((V.dist(P,a.p)**2+V.dist(P,b.p)**2-V.dist(a.p,b.p)**2)/(2*V.dist(P,a.p)*V.dist(P,b.p)))}`) }),
         K.tip('两源同号时，分场强夹角等于连线夹角；异号时等于其补角。')));
     }
     // 对称关系

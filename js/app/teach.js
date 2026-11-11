@@ -4,13 +4,13 @@
   const U = EL.U, h = U.h, K = EL.UI, A = EL.App, V = EL.V;
 
   // 沿法向 n 正视某平面（三维矢量合成化为平面作图）
-  A.alignView = function (n) {
+  A.alignView = function (n, points) {
     const cam = A.r.cam;
     if (n === 'reset') return cam.reset(A.c.bound, A.st.view === '2d', true);
     if (A.st.view !== '3d') return;
     let d = V.norm(n);
     if (V.dot(d, V.sub(cam.eye(), cam.target)) < 0) d = V.mul(d, -1);
-    cam.tween({ theta: Math.atan2(d[1], d[0]), phi: U.clamp(Math.asin(U.clamp(d[2], -1, 1)), -1.5, 1.5), target: [0, 0, 0] }, 750);
+    cam.tween({ theta: Math.atan2(d[1], d[0]), phi: U.clamp(Math.asin(U.clamp(d[2], -1, 1)), -1.5, 1.5), ...(points ? cam.frame(points) : { target: [0, 0, 0] }) }, 750);
   };
 
   // 画板下方说明条：步骤标题、说明、公式与预测题
@@ -55,7 +55,7 @@
   A.afterStep = function () {
     A.update();
     const cs = A.c.cs;
-    if (cs) { const v = cs.step.view; if (v) A.alignView(typeof v === 'function' ? v(A.c) : v); }
+    if (cs) { const v = cs.step.view; if (v) A.alignView(typeof v === 'function' ? v(A.c) : v, cs.step.tetra ? A.c.sources.map(s => s.p).concat([cs.step.tetra.P, cs.step.tetra.H]) : null); }
     A.renderCaption(true); A.renderStepList(); A.renderDerive(); A.renderComp();
   };
   // 分析工作区中的向导步骤概览
@@ -75,7 +75,7 @@
     const cs = A.c && A.c.cs, box = U.$('#deriveBox');
     box.hidden = !cs;
     if (!cs) return;
-    const rows = cs.steps.slice(0, cs.k + 1).filter(x => x.tex).map(x => h('div.der', null, h('b', { html: U.rich(x.title) }), h('div.formula', { html: EL.texBlock(x.tex) })));
+    const rows = cs.steps.slice(0, cs.k + 1).filter(x => x.tex || x.rows).map(x => h('div.der', null, h('b', { html: U.rich(x.title) }), h('div.formula', { html: EL.VA.stepHTML(x) })));
     U.$('#derive').replaceChildren(...(rows.length ? rows : [K.note('在画板下方完成合成步骤后，这里会按顺序汇总每一步的计算。')]));
   };
 

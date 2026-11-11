@@ -169,8 +169,8 @@
     if (!o.ok) return [{ t: o.err }];
     if (o.expl) return o.expl;
     if (q.t === 'E' || q.t === 'Ezero' || q.t === 'angle') {
-      for (const s of o.plan) if (s.id !== 'list' && s.id !== 'group') L.push({ t: s.title + '：' + s.text, tex: s.tex });
-      if (q.t === 'angle') L.push({ t: '由合场强与 ' + q.a + '、' + q.b + ' 两点位置差矢量的数量积求得，所求夹角为 ' + o.answer + '。' });
+      for (const s of o.plan) if (s.id !== 'list' && s.id !== 'group') L.push({ t: s.title + '：' + s.text, tex: s.tex, rows: s.rows });
+      if (q.t === 'angle') L.push({ t: '取 ' + q.a + '→' + q.b + ' 的位置差矢量为 u。在已求出合场强后，由数量积求得与此方向的夹角为 ' + o.answer + '。', tex: String.raw`\vec u=\vec r_{${q.b}}-\vec r_{${q.a}},\qquad\cos\alpha=\frac{\vec E\cdot\vec u}{|\vec E||\vec u|}=${numTex(Math.cos(o.value * Math.PI / 180))},\qquad\alpha=${f4(o.value)}^\circ` });
     } else if (q.t === 'V') {
       L.push({ t: '电势是标量。' + q.at + ' 点的电势等于各场源电荷单独在该点产生的电势的代数和，正电荷的贡献为正，负电荷的贡献为负。', tex:String.raw`\varphi_{${q.at}}=\sum_i\frac{kq_i}{r_i}=` + o.terms.map(x => (x.q < 0 ? '-' : '+') + numTex(Math.abs(x.v))).join('').replace(/^\+/, '') + '=' + numTex(o.value) });
     } else if (q.t === 'Vcmp') {

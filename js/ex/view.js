@@ -27,12 +27,12 @@
     s.querySelectorAll('.caption,.tools,.stagebar,.hud').forEach(e => e.classList.add('glass'));
     if (W.last) W.show(...W.last);
   };
-  W.align = function (n) {
+  W.align = function (n, points) {
     const cam = W.r.cam;
     if (n === 'reset') return cam.reset(AD * 1.2, false, true);
     let d = V.norm(n);
     if (V.dot(d, V.sub(cam.eye(), cam.target)) < 0) d = V.mul(d, -1);
-    cam.tween({ theta: Math.atan2(d[1], d[0]), phi: U.clamp(Math.asin(U.clamp(d[2], -1, 1)), -1.5, 1.5), target: [0, 0, 0] }, 700);
+    cam.tween({ theta: Math.atan2(d[1], d[0]), phi: U.clamp(Math.asin(U.clamp(d[2], -1, 1)), -1.5, 1.5), ...(points ? cam.frame(points) : { target: [0, 0, 0] }) }, 700);
   };
 
   W.pickContext = function (x, y) {
