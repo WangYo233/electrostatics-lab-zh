@@ -68,7 +68,7 @@ details[open].acc > :not(summary), details[open].base > :not(summary), details[o
 .tp-main h1 { background: linear-gradient(90deg, var(--ink), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .formula { transition: border-color .2s, box-shadow .25s var(--ease-out); background: linear-gradient(180deg, #fbfcfe, var(--surface-2)); }
 .formula:hover { border-color: var(--line-2); box-shadow: 0 3px 12px rgba(16,28,48,.05); }
-.tsec > h2 .tn { box-shadow: 0 4px 12px rgba(61,85,209,.3); background: linear-gradient(160deg, #5a70ea, var(--accent-2)); }
+.tsec > h2 .tn { box-shadow: 0 4px 12px rgba(61,85,209,.3); background: linear-gradient(160deg, #465bd1, var(--accent-2)); }
 .tfig { transition: box-shadow .25s var(--ease-out); }
 .tfig:hover { box-shadow: 0 8px 26px rgba(16,28,48,.08); }
 

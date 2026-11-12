@@ -103,24 +103,25 @@
       const L = labs[i];
       if (!L || L.text == null || L.text === '') { s.style.display = 'none'; return; }
       const q = this.cam.toScreen(L.p);
-      if (!q || q[2] > 1 || q[2] < -1) { s.style.display = 'none'; return; }
+      if (!q || q[2] > 1 || q[2] < -1 || q[0] < 0 || q[0] > this.cam.w || q[1] < 0 || q[1] > this.cam.h) { s.style.display = 'none'; return; }
       const cls = 'lbl ' + (L.cls || '');
       if (s.className !== cls) { s.className = cls; s._w = 0; }
       if (s._t !== L.text) { s._t = L.text; s.innerHTML = EL.U.rich(L.text); s._w = 0; }
       s.style.display = '';
       let x = q[0] + 7, y = q[1] - 18;
-      // 矢量、角度标注互不遮挡：与已放置的标注重叠时向下移一行（最多移 3 次）
-      if (/\b(vec|ang|probe)\b/.test(cls)) {
-        if (!s._w) { s._w = s.offsetWidth || 8 * String(L.text).length; s._h = s.offsetHeight || 16; }
-        const w = s._w, hh = s._h;
-        for (let k = 0; k < 3; k++) {
-          const hit = placed.find(r => x < r.x + r.w && r.x < x + w && y < r.y + r.h && r.y < y + hh);
-          if (!hit) break;
-          y = hit.y + hit.h + 1;
+      // Include point and component-field labels in collision avoidance, not only angles.
+      if (!s._w) { s._w = s.offsetWidth || 8 * String(L.text).length; s._h = s.offsetHeight || 16; }
+      const w = s._w, hh = s._h, ox = x, oy = y, gap = 4;
+      let found = false;
+      for (let ring = 0; ring <= 16 && !found; ring++) {
+        const offsets = ring === 0 ? [[0, 0]] : [[0, -ring * (hh + gap)], [0, ring * (hh + gap)], [-ring * 18 - w, 0], [ring * 18, 0]];
+        for (const [dx, dy] of offsets) {
+          const cx = Math.max(4, Math.min(ox + dx, this.cam.w - w - 4)), cy = Math.max(4, Math.min(oy + dy, this.cam.h - hh - 4));
+          if (!placed.some(r => cx < r.x + r.w + gap && r.x < cx + w + gap && cy < r.y + r.h + gap && r.y < cy + hh + gap)) { x = cx; y = cy; found = true; break; }
         }
-        placed.push({ x, y, w, h: hh });
       }
-      s._dy = y - (q[1] - 18);
+      placed.push({ x, y, w, h: hh });
+      s._dx = x - ox; s._dy = y - oy;
       s.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
     });
   };
@@ -137,8 +138,8 @@
     g.font = (13 * dpr) + 'px "Times New Roman", "Microsoft YaHei", serif';
     g.fillStyle = EL.C.lbl === 'dark' ? '#E6EDF6' : '#1d2b3a';
     (this.scene.labels || []).forEach((L, i) => {
-      const q = this.cam.toScreen(L.p), dy = (this.labelPool[i] && this.labelPool[i]._dy) || 0;
-      if (q && L.text != null) g.fillText(EL.U.plain(L.text), (q[0] + 7) * dpr, (q[1] - 4 + dy) * dpr);
+      const q = this.cam.toScreen(L.p), label = this.labelPool[i], dx = label?._dx || 0, dy = label?._dy || 0;
+      if (q && L.text != null) g.fillText(EL.U.plain(L.text), (q[0] + 7 + dx) * dpr, (q[1] - 4 + dy) * dpr);
     });
     return c.toDataURL('image/png');
   };

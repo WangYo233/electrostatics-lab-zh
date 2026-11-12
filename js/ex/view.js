@@ -26,6 +26,7 @@
     U.$('#caption').dataset.theme = EL.C.lbl;
     s.querySelectorAll('.caption,.tools,.stagebar,.hud').forEach(e => e.classList.add('glass'));
     if (W.last) W.show(...W.last);
+    if (X.S?.f && document.body.dataset.exmode === 'student' && X.renderCap) X.renderCap();
   };
   W.align = function (n, points) {
     const cam = W.r.cam;
@@ -119,21 +120,61 @@
       const a = R.pts[f.a].p, b = R.pts[f.b].p, p = V.lerp(a, b, f.s), s = R.field(p);
       out.lines.push({ pts: [M(a), M(b)], color: C.path, width: 1.6, dash: [0.12, 0.08] });
       MH.mark(out, M(p), 'X', C.probe, AD * 0.025);
-      if (s.ok) {
+      const proof = f.proof, phase = f.phase;
+      const label = (p, text) => out.labels.push({ p: M(p), text, cls: 'pt vec' });
+      label(V.lerp(a, b, 0.7), 'ℓ=' + VA.cell(V.dist(a, b)) + ' ' + R.units.L);
+      if (proof && ['pathDistances', 'pathPotential', 'pathDerivative'].includes(phase)) for (const source of proof.sources) {
+        MH.dash(out, M(source.p), M(p), C.guide);
+        label(V.lerp(source.p, p, 0.5), 'r_' + source.label + '=' + U.fmt(V.dist(source.p, p), 4));
+        if (phase === 'pathDistances') {
+          MH.dash(out, M(a), M(source.foot), C.path);
+          MH.dash(out, M(source.p), M(source.foot), C.ang);
+          const peers = proof.sources.filter(x => V.dist(x.foot, source.foot) < 1e-9);
+          if (peers[0] === source) {
+            const known = Object.keys(R.pts).find(n => V.dist(R.pts[n].p, source.foot) < 1e-9);
+            label(source.foot, peers.map(x => 'H_' + x.label).join('=') + (known ? '=' + known : ''));
+            label(V.lerp(a, source.foot, 0.5), peers.map(x => 'h_' + x.label).join('=') + '=' + U.fmt(source.h, 4));
+          }
+          if (source.b2 > 0) label(V.lerp(source.p, source.foot, 0.5), 'b_' + source.label + '=' + U.fmt(Math.sqrt(source.b2), 4));
+          MH.right(out, M(source.foot), V.sub(source.p, source.foot), proof.t, AD * 0.025);
+        }
+      }
+      if (R.analytic && ['pathDistances', 'pathPotential', 'pathDerivative'].includes(phase)) {
+        MH.dash(out, [0, 0, 0], M(p), C.guide);
+        label(V.mul(p, 0.5), 'r(s)=' + VA.cell(V.len(p)));
+        const foot = [0, 0, p[2]];
+        if (pb.sub === 'infinite-line') { MH.dash(out, M(foot), M(p), C.guide); label(V.lerp(foot, p, 0.5), 'ρ(s)=' + VA.cell(Math.hypot(p[0], p[1]))); }
+        if (/plane|interface|dielectric-sphere/.test(pb.sub)) { MH.dash(out, [0, 0, 0], M(foot), C.guide); label(foot, 'z(s)=' + VA.cell(p[2])); }
+      }
+      if (proof && ['pathCritical', 'pathConclusion'].includes(phase)) {
+        proof.roots.forEach((s, i) => MH.mark(out, M(V.lerp(a, b, s)), 's*' + (i + 1) + '=' + U.fmt(s, 5), C.probe, AD * 0.025));
+        proof.boundaries.filter(s => s > 0 && s < 1).forEach(s => MH.mark(out, M(V.lerp(a, b, s)), 's=' + U.fmt(s, 5), C.mark, AD * 0.025));
+      }
+      if (s.ok && ['pathDerivative', 'pathCritical', 'pathConclusion'].includes(phase)) {
         const T = s.E, t = V.norm(V.sub(b, a)), k = AD * 0.4 / Math.max(1e-9, V.len(T));
-        MH.vec(out, M(p), V.mul(T, k), C.sum, 'E', 'sum', 3); MH.vec(out, M(p), V.mul(t, AD * 0.3), C.path, '路径方向', 'pt', 1.6);
+        MH.vec(out, M(p), V.mul(T, k), C.sum, 'E', 'sum', 3);
+        MH.vec(out, M(p), V.mul(t, AD * 0.3), C.path, '路径方向', 'pt', 1.6);
+        const component = V.mul(t, V.dot(T, t));
+        if (V.len(component) > 1e-12) {
+          MH.vec(out, M(p), V.mul(component, k), C.part, 'E∥', 'vec', 2);
+          MH.dash(out, V.add(M(p), V.mul(T, k)), V.add(M(p), V.mul(component, k)), C.guide);
+        }
         if (V.len(T) > 1e-12) MH.arc(out, M(p), T, t, AD * 0.12);
       }
     }
     if (f && f.kind === 'terms') for (const n of f.at) {
       const p = R.pts[n].p;
-      for (const s of R.sources) { MH.dash(out, M(p), M(s.p), C.guide); out.labels.push({ p: V.lerp(M(p), M(s.p), 0.5), text: 'r=' + VA.f4(V.dist(p, s.p)) + ' ' + R.units.L, cls: 'pt' }); }
+      for (const s of R.sources) { MH.dash(out, M(p), M(s.p), C.guide); out.labels.push({ p: V.lerp(M(p), M(s.p), 0.5), text: 'r_' + s.label + '=' + VA.cell(V.dist(p, s.p)) + ' ' + R.units.L, cls: 'pt vec' }); }
     }
     // 解析场：在观察点画合场强（统一长度）并标出所在区域
-    if (f && f.kind === 'probe') for (const p of f.pts) {
+    if (f && f.kind === 'probe') for (const [i, p] of f.pts.entries()) {
+      if (!R.pts[f.names?.[i]]) MH.mark(out, M(p), f.names?.[i] || 'P' + (i + 1), C.probe, AD * 0.025);
+      MH.dash(out, [0, 0, 0], M(p), C.guide);
+      out.labels.push({ p: M(V.mul(p, 0.5)), text: 'r=' + VA.cell(V.len(p)), cls: 'pt vec' });
+      if (pb.sub === 'infinite-line') { const foot = [0, 0, p[2]]; MH.dash(out, M(foot), M(p), C.guide); out.labels.push({ p: M(V.lerp(foot, p, 0.5)), text: 'ρ=' + VA.cell(Math.hypot(p[0], p[1])), cls: 'pt vec' }); }
       const s = R.field(p);
       out.glows.push({ p: M(p), r: AD * 0.07, color: C.probe, a: 0.6 });
-      if (s.E.every(isFinite) && V.len(s.E) > 1e-12) MH.vec(out, M(p), V.mul(V.norm(s.E), AD * 0.35), C.sum, 'E', 'sum', 3);
+      if (s.E.every(isFinite) && V.len(s.E) > 1e-12) MH.vec(out, M(p), V.mul(V.norm(s.E), AD * 0.35), C.sum, f.bc && pb.sub === 'dielectric-interface' ? 'E_' + (i + 1) + 'n' : 'E', 'sum', 3);
       if (s.region && L.labels) out.labels.push({ p: V.add(M(p), [0, 0, -AD * 0.12]), text: s.region, cls: 'pt' });
     }
     // 圆盘：电荷两两连线（总相互作用能的各项）
@@ -142,6 +183,10 @@
       for (let i = 0; i < S.length; i++) for (let j = i + 1; j < S.length; j++) out.lines.push({ pts: [M(S[i].p), M(S[j].p)], color: [...C.energy, 0.55], width: 1.2, dash: [0.1, 0.07] });
     }
     if (f && f.kind === 'point') { const P = R.pts[f.at]; if (P && P.p) out.glows.push({ p: M(P.p), r: AD * 0.08, color: C.probe, a: 0.6 }); }
+    if (R.analytic && L.labels) {
+      MH.mark(out, [0, 0, 0], 'O', C.mark, AD * 0.015);
+      if (pb.sub === 'dielectric-sphere' && pb.sp.E0) MH.vec(out, M([R.ext * 0.8, 0, 0]), [0, 0, Math.sign(pb.sp.E0) * AD * 0.35], C.path, 'E₀=' + VA.cell(pb.sp.E0), 'vec', 2);
+    }
     W.r.setScene(out);
   };
   // 解析场模型的几何：点电荷、z 轴上的线电荷、z=0 平面、球

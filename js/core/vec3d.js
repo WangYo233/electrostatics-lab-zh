@@ -147,7 +147,7 @@
   VA.plan = function (o) {
     const parts = o.parts, P = o.P, named = o.named || [], unit = o.unit || 'kQ/L²', rU = o.rUnit || 'L', pn = o.pName || 'P';
     const T = VA.sum(parts), groups = VA.group(parts, P), hide = o.hide ? ['lines', 'contours', 'surfaces', 'flow'] : null;
-    const d = { P, parts, groups, T, named, pn, partial: !!o.partial }, steps = [];
+    const d = { P, parts, groups, T, named, pn, unit, rU, partial: !!o.partial }, steps = [];
     const dir = v => VA.describe(v, named);
     steps.push({ id: 'list', title: '列出各分场强', text: (o.partial ? '这次只合成在“自由合成”中选中的 ' + parts.map(x => x.n).join('、') + '，结果是它们的矢量和，不是 ' + pn + ' 点的合场强。' : '') + '每个场源电荷单独在 ' + pn + ' 点产生的电场强度称为分场强，大小为 |E_i| = k|q_i|/r_i²。正电荷的分场强背离该电荷，负电荷的分场强指向该电荷。',
       rows: [['场源电荷', 'q', 'r / ' + rU, '|E_i| / ' + unit, '方向']].concat(parts.map(x => [x.label, VA.cell(x.q), VA.cell(x.r), VA.txtV(x.mag), (x.q > 0 ? '背离 ' : '指向 ') + x.label])) });
@@ -233,6 +233,7 @@
       ask = { q: nm + ' 的方向与哪个方向相同？', options: [right, toP ? '由 ' + pn + ' 指向 ' + mn : '由 ' + mn + ' 指向 ' + pn, '由 ' + s.a.label + ' 指向 ' + s.b.label].sort(), a: right,
         why: '菱形的对角线 ' + nm + ' 与三角形 ' + tri + ' 中的边 ' + mn + pn + ' 对应，两个场源电荷' + (toP ? '都带正电，所以 ' : '都带负电，所以 ') + nm + ' 的方向' + right + '。' };
     }
+    tex = R`r=|${pn}${s.a.label}|=|${pn}${s.b.label}|=${VA.texV(s.r)},\quad E_0=|\vec ${s.a.n}|=|\vec ${s.b.n}|=\frac{k|q|}{r^2}=${VA.texV(s.E)}\qquad ` + tex;
     return { id: 'similar', g, sim: s, th: s.th, title: '用相似三角形求 ' + s.a.n + ' 与 ' + s.b.n + ' 的合成', text, tex, ask,
       setup: '设 ' + mn + ' 为线段 ' + s.a.label + s.b.label + ' 的中点。',
       view: V.cross(V.sub(s.a.p, d.P), V.sub(s.b.p, d.P)) };
@@ -245,7 +246,7 @@
     const tex = s.opp
       ? R`|${g.tex}|=E_0\cdot\frac{|${s.pos.label}${s.neg.label}|}{r}=${VA.texV(s.E)}\times${VA.texV(s.ab / s.r)}=${VA.texV(L)}`
       : R`|${g.tex}|=2E_0\cdot\frac{|${pn}${s.mn}|}{r}=2\times${VA.texV(s.E)}\times${VA.texV(s.pm / s.r)}=${VA.texV(L)}`;
-    return { id: 'pairSum', g, sim: s, title: '求 ' + nm + ' 的大小与方向', hide, view: V.cross(s.a.E, s.b.E), text: text + (D ? nm + ' 的方向' + D + '。' : ''), tex };
+    return { id: 'pairSum', g, sim: s, title: '求 ' + nm + ' 的大小与方向', hide, view: V.cross(s.a.E, s.b.E), text: text + (D ? nm + ' 的方向' + D + '。' : ''), tex: R`r=|${pn}${s.a.label}|=|${pn}${s.b.label}|=${VA.texV(s.r)},\quad E_0=\frac{k|q|}{r^2}=${VA.texV(s.E)}\qquad ` + tex };
   };
   VA.pairStep = function (g, d, hide, dir) {
     const [a, b] = g.items, eq = tol(a.mag, b.mag), zero = V.len(g.S) < 1e-12, D = zero ? null : dir(g.S);
@@ -254,7 +255,7 @@
       text: zero ? a.n + ' 与 ' + b.n + ' 大小相等、方向相反，矢量和为零，即 ' + g.name + ' 为零。' :
         (col ? a.n + ' 与 ' + b.n + ' 在同一直线上且方向' + (para ? '相同，' + g.name + ' 的大小等于两者大小之和。' : '相反，' + g.name + ' 的大小等于两者大小之差，方向与较大的分场强相同。')
           : '以 ' + a.n + '、' + b.n + ' 为邻边作平行四边形，对角线表示它们的矢量和 ' + g.name + '。' + (eq ? '两分场强大小相等，' + g.name + ' 沿它们夹角的平分线。' : '')) + (D ? g.name + ' 的方向' + D + '。' : ''),
-      tex: col && !zero ? R`|${g.tex}|=${para ? 'E_1+E_2' : '|E_1-E_2|'}=${VA.texV(V.len(g.S))}` : eq ? R`|${g.tex}|=2E\cos\frac{\theta}{2}=${VA.texV(V.len(g.S))}` : R`|${g.tex}|=\sqrt{E_1^2+E_2^2+2E_1E_2\cos\theta}=${VA.texV(V.len(g.S))}` };
+      tex: R`E_1=|\vec ${a.n}|=${VA.texV(a.mag)},\quad E_2=|\vec ${b.n}|=${VA.texV(b.mag)}\qquad ` + (col && !zero ? R`|${g.tex}|=${para ? 'E_1+E_2' : '|E_1-E_2|'}=${VA.texV(V.len(g.S))}` : eq ? R`|${g.tex}|=2E_1\cos\frac{\theta}{2}=${VA.texV(V.len(g.S))}` : R`|${g.tex}|=\sqrt{E_1^2+E_2^2+2E_1E_2\cos\theta}=${VA.texV(V.len(g.S))}`) };
   };
   VA.planeStep = function (g, d, hide) {
     const lb = g.items.map(x => x.label).join(''), pn = d.pn;
@@ -390,10 +391,20 @@
       if (active.id !== 'tetraHeight') MH.tri(out, [M(t.mid), P, M(t.H)], C.pot, 0.07);
       MH.right(out, M(t.G), V.sub(t.P, t.G), V.sub(t.mid, t.G), Rr * 0.025);
     }
-    if (cur === 'list' || cur === 'coordR') for (const x of d.parts) { MH.dash(out, P, M(x.p), C.guide); (out.labels = out.labels || []).push({ p: V.lerp(P, M(x.p), 0.55), text: 'r=' + VA.cell(x.r), cls: 'pt', kind: 'vectors' }); }
+    // Use the same symbols on geometric segments and field arrows as in the active proof.
+    const lengths = active && active.sim ? active.g.items : active && active.g ? active.g.items : d.parts;
+    if (active && (active.sim || active.g || active.proof || cur === 'list' || cur === 'coordR')) for (const x of lengths) {
+      MH.dash(out, P, M(x.p), C.guide);
+      (out.labels = out.labels || []).push({ p: V.lerp(P, M(x.p), 0.55), text: (active.sim ? 'r' : 'r_' + x.label) + '=' + VA.cell(x.r) + ' ' + (d.rU || 'L'), cls: 'pt vec', kind: 'vectors' });
+    }
+    if (active && active.sim && !pending) {
+      const m = active.sim;
+      out.labels.push({ p: V.lerp(M(m.a.p), M(m.b.p), 0.5), text: '|' + m.a.label + m.b.label + '|=' + VA.cell(m.ab) + ' ' + (d.rU || 'L'), cls: 'pt vec', kind: 'vectors' });
+      if (!m.opp) out.labels.push({ p: V.lerp(P, M(m.mid), 0.5), text: '|' + d.pn + m.mn + '|=' + VA.cell(m.pm) + ' ' + (d.rU || 'L'), cls: 'pt vec', kind: 'vectors' });
+    }
     // 方向相同的分场强（例如共线的 E_T1、E_T2）沿垂直方向错开，标签分别放在箭头外侧与中部
     const offs = VA.offsets(d.parts.map(x => x.E), Rr * 0.035), rank = offs.rank;
-    d.parts.forEach((x, i) => { const a = al(x); vec(V.add(P, offs[i]), S(x.E), [...(x.q > 0 ? C.pos : C.neg), a], a > 0.5 ? x.n : null, x.q > 0 ? 'pos' : 'neg', 2.4, rank[i] % 2 ? 0.55 : 1.06); });
+    d.parts.forEach((x, i) => { const alias = active && (active.sim && active.g.items.includes(x) || active.tetra && active.id === 'combine'); const a = alias ? 1 : al(x); vec(V.add(P, offs[i]), S(x.E), [...(x.q > 0 ? C.pos : C.neg), a], a > 0.5 ? x.n + (alias ? '=E₀' : '') : null, x.q > 0 ? 'pos' : 'neg', 2.4, rank[i] % 2 ? 0.55 : 1.06); });
     const s = pending ? null : steps[k];
     if (s && s.id === 'angle') {
       const [a, b] = s.g.items;

@@ -1,7 +1,12 @@
 /* 教学过程：画板说明条（构造步骤与预测题）、步骤概览、教学提示、课堂演示模式 */
 .caption { position: relative; inset: auto; transform: none; width: 100%; max-height: min(28vh, 240px); min-height: 0; overflow: auto; overscroll-behavior: contain; border-radius: 10px; padding: 8px 12px; font-size: 13.5px; animation: capIn .35s var(--ease); }
+.caption[data-theme="dark"] { --ink-2: #d9e3f3; --muted: #b7c5db; --accent-2: #b9c6ff; }
+.caption[data-theme="dark"] .opt-l { color: #b9c6ff; }
+.caption[data-theme="dark"] .btn.primary:hover { background: #3046b7; }
 .caption[data-theme="light"] { color: var(--ink); background: rgba(255,255,255,.96); border-color: var(--line); }
 .caption input, .caption select { color: #172033 !important; background: #fff !important; }
+.caption .ctl .row { flex-wrap: nowrap; }
+.caption .ctl input.num { flex: 0 0 6em; width: 6em; }
 .caption[hidden] { display: none; }
 @keyframes capIn { from { opacity: 0; transform: translateY(6px); } }
 .cap-h { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }

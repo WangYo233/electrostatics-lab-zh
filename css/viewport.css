@@ -55,11 +55,11 @@
 .stage[data-theme="light"] .sb-track { background: var(--line); }
 .sb-track i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #F28E2B, #F0E442, #4FA3E0); transition: width .5s var(--ease); }
 .sb-layers { display: flex; gap: 2px; }
-.sb-layers button { border: 0; background: none; color: inherit; opacity: .55; padding: 4px 9px; border-radius: 7px; font-size: 12.5px; transition: opacity .2s, background .2s; white-space: nowrap; }
+.sb-layers button { border: 0; background: none; color: inherit; opacity: .75; padding: 4px 9px; border-radius: 7px; font-size: 12.5px; transition: opacity .2s, background .2s; white-space: nowrap; }
 .sb-layers button.on { opacity: 1; background: rgba(255,255,255,.1); }
 .stage[data-theme="light"] .sb-layers button.on { background: var(--accent-soft); color: var(--accent-2); }
 .sb-layers button:hover { opacity: 1; }
-.sb-layers button i { font-style: normal; font: 700 10.5px "Times New Roman", serif; margin-right: 3px; opacity: .7; }
+.sb-layers button i { font-style: normal; font: 700 10.5px "Times New Roman", serif; margin-right: 3px; opacity: 1; }
 .theme-toggle { flex: none; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); color: var(--ink); cursor: pointer; }
 .stage:fullscreen { border-radius: 0; min-height: 100vh; }
 .busy { left: 50%; top: 14px; transform: translateX(-50%); position: absolute; background: rgba(14,22,38,.85); color: #fff; padding: 5px 14px 5px 30px; border-radius: 14px; font-size: 12.5px; }

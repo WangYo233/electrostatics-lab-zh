@@ -72,6 +72,17 @@
           if (Math.abs(h) < sp.a) { const rr = Math.sqrt(sp.a * sp.a - h * h), c = []; for (let i = 0; i <= 96; i++) { const t = 2 * Math.PI * i / 96; c.push(V.onPlane(B, rr * Math.cos(t), rr * Math.sin(t), h)); } out.lines.push({ pts: c, color: col, width: 1.8 }); }
         }
       }
+      if (ctx.st.labels.points) {
+        const MH = EL.MH, P = ctx.probeVisible && ctx.probe && ctx.probe.pos;
+        MH.mark(out, [0, 0, 0], 'O', EL.C.mark, 0.04);
+        if (P) {
+          const foot = g === 'line' ? [0, 0, P[2]] : g === 'plane' ? [P[0], P[1], 0] : [0, 0, 0];
+          MH.dash(out, foot, P, EL.C.guide);
+          (out.labels = out.labels || []).push({ p: V.lerp(foot, P, 0.5), text: (g === 'line' ? 'ρ' : g === 'plane' ? '|z|' : 'r') + '=' + EL.U.fmt(V.dist(foot, P), 4) + ' L', cls: 'pt vec' });
+        }
+        if (g === 'sphere') { MH.dash(out, [0, 0, 0], [sp.a, 0, 0], EL.C.guide); out.labels.push({ p: [sp.a / 2, 0, 0], text: 'a=' + EL.U.fmt(sp.a, 4) + ' L', cls: 'pt vec' }); }
+        if (ctx.sub === 'dielectric-sphere' && sp.E0) MH.vec(out, [r * 0.65, 0, 0], [0, 0, Math.sign(sp.E0) * r * 0.3], EL.C.path, 'E₀=' + EL.U.fmt(sp.E0, 4), 'vec', 2);
+      }
       return out;
     },
     exercises: null

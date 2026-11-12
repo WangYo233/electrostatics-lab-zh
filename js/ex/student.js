@@ -62,24 +62,41 @@
   // 引导探究：场强题走三维合成步骤；路径题拖动观察；电势题列出各项；解析场显示观察点的读数；圆盘显示电荷对
   X.guide = function (i) {
     X.stopPath();
-    const o = S.sol.ans[i], R = S.sol.R;
+    const o = S.sol.ans[i], R = S.sol.R, pb = S.pb;
     S.qi = i; S.step = 0; S.ans = {};
-    if (o.focus === 'pairs') X.focus({ kind: 'pairs' });
-    else if (o.q.t === 'trend') { S.path = 0.3; X.focus({ kind: 'path', a: o.q.a, b: o.q.b, s: S.path }); }
-    else if (R.analytic) X.focus({ kind: 'probe', pts: o.probePts || o.probe.map(n => R.pts[n].p), names: o.probePts ? null : o.probe });
-    else if (o.plan && (o.q.t === 'E' || o.q.t === 'angle' || o.q.t === 'Ezero')) X.focusStep();
-    else if (o.q.t === 'V') X.focus({ kind: 'terms', at: [o.q.at] });
-    else X.focus({ kind: 'terms', at: [o.q.a, o.q.b] });
+    if (!R.analytic && o.plan && ['E', 'angle', 'Ezero'].includes(o.q.t)) X.focusStep();
+    else { S.calc = o.q.t === 'trend' ? null : X.calculationSteps(S.pb, R, o); S.path = 0.3; X.focusCalculation(); }
     X.renderProblem();
+    if (S.f.kind !== 'plan') requestAnimationFrame(() => {
+      if (!S.f || S.qi !== i || S.pb !== pb) return;
+      const f = S.f, points = Object.values(R.g.v).concat(R.sources.map(x => x.p), f.kind === 'path' ? [R.pts[f.a].p, R.pts[f.b].p] : f.kind === 'probe' ? f.pts : (f.at || []).map(n => R.pts[n].p)).map(W.M);
+      if (R.analytic) { points.push([0, 0, 0]); if (pb.sp.a) for (const sign of [-1, 1]) points.push(W.M([sign * pb.sp.a, 0, 0]), W.M([0, 0, sign * pb.sp.a])); }
+      const proof = S.sol.ans[i].pathProof;
+      if (proof) points.push(...proof.sources.map(x => W.M(x.foot)));
+      const cam = W.r.cam;
+      cam.tween({ ...cam.frame(points), ...(R.g.flat ? { theta: -Math.PI / 2, phi: 1.5 } : {}) }, 600);
+    });
   };
   X.focusStep = function () {
     const o = S.sol.ans[S.qi], st = o.plan[S.step], rev = !st.ask || S.ans[S.step] != null;
     const k = rev ? S.step : S.step - 1;
     X.focus({ kind: 'plan', plan: o.plan, k: Math.max(0, k), step: S.step, hide: S.step > 0 });
     const v = st.view;
-    if (v) W.align(v === 'reset' ? 'reset' : v, st.tetra ? o.plan.d.parts.map(s => W.M(s.p)).concat([W.M(st.tetra.P), W.M(st.tetra.H)]) : null);
+    if (v) W.align(v === 'reset' ? 'reset' : v, o.plan.d.parts.map(s => W.M(s.p)).concat([W.M(o.plan.d.P)], st.tetra ? [W.M(st.tetra.H)] : [], (W.r.scene.arrows || []).map(a => V.add(a.p, a.v))));
   };
-  const fmtP = p => '(' + p.map(x => U.fmt(x, 3)).join(', ') + ')';
+  X.focusCalculation = function () {
+    const o = S.sol.ans[S.qi], R = S.sol.R;
+    if (o.q.t === 'trend') {
+      const steps = X.pathSteps(S.pb, R, o, S.path);
+      X.focus({ kind: 'path', a: o.q.a, b: o.q.b, s: S.path, phase: steps[S.step].id, proof: o.pathProof });
+    } else {
+      const step = S.calc[S.step], names = [...new Set([...(o.probe || []), o.q.a, o.q.b].filter(n => R.pts[n]?.p))];
+      const f = o.focus === 'pairs' ? { kind: 'pairs' } : R.analytic ? { kind: 'probe', pts: o.probePts || names.map(n => R.pts[n].p), names: o.probePts ? o.probePts.map((_, i) => 'P' + (i + 1)) : names, bc: o.q.t === 'bc' } : { kind: 'terms', at: o.q.at ? [o.q.at] : [o.q.a, o.q.b] };
+      S.f = f;
+      W.show(step.display || S.pb, step.display ? { R: X.resolve(step.display) } : S.sol, f);
+      X.renderCap();
+    }
+  };
   function drawPotentialCurve(canvas, R, a, b, s) {
     const dpr = devicePixelRatio || 1, w = canvas.clientWidth, h0 = canvas.clientHeight;
     if (!w || !h0) return;
@@ -88,7 +105,8 @@
     const vals = Array.from({ length: 101 }, (_, i) => { const x = 0.02 + 0.96 * i / 100, q = V.lerp(R.pts[a].p, R.pts[b].p, x); return [x, R.field(q).V]; }).filter(x => isFinite(x[1]));
     if (!vals.length) return;
     const lo = Math.min(...vals.map(x => x[1])), hi = Math.max(...vals.map(x => x[1])), span = hi - lo || 1;
-    const L = 38, T = 10, B = 22, RW = w - L - 8, RH = h0 - T - B;
+    g.font = '11px sans-serif';
+    const L = Math.max(45, g.measureText(U.fmt(hi, 3)).width + 12, g.measureText(U.fmt(lo, 3)).width + 12), T = 25, B = 22, RW = w - L - 8, RH = h0 - T - B;
     const Xp = x => L + (x - 0.02) / 0.96 * RW, Yp = y => T + (hi - y) / span * RH;
     const dark = EL.theme === 'dark'; g.strokeStyle = dark ? '#718096' : '#68778a'; g.fillStyle = dark ? '#e5edf7' : '#263446'; g.lineWidth = 1; g.font = '11px sans-serif';
     g.beginPath(); g.moveTo(L, T); g.lineTo(L, T + RH); g.lineTo(L + RW, T + RH); g.stroke();
@@ -110,15 +128,13 @@
     const box = U.$('#caption'), range = box.querySelector('input[type="range"]'), number = box.querySelector('input[type="number"]');
     if (range) range.value = value;
     if (number && document.activeElement !== number) number.value = value.toFixed(3);
-    const R = S.sol.R, p = V.lerp(R.pts[f.a].p, R.pts[f.b].p, value), field = R.field(p), T = field.ok ? field.E : [0, 0, 0], t = V.norm(V.sub(R.pts[f.b].p, R.pts[f.a].p)), Ep = V.dot(T, t), th = V.len(T) > 1e-12 ? VA.ang(T, t) : 90, u = R.units;
-    const tip = !field.ok ? 'X 点处的场强未定义。' : V.len(T) <= 1e-12 ? 'X 点的合场强为零，此处电势沿路径的变化率为零。'
-      : '合场强与路径方向的夹角约为 ' + VA.f4(th) + '°，合场强沿路径方向的分量 E_∥ 约为 ' + VA.f4(Ep) + (u.E ? ' ' + u.E : '') + '。' +
-        (Ep > 1e-9 ? '夹角小于 90°，所以在 X 点附近沿路径电势降低。' : Ep < -1e-9 ? '夹角大于 90°，所以在 X 点附近沿路径电势升高。' : '合场强与路径垂直，所以在 X 点附近电势沿路径的变化率为零。');
-    const text = box.querySelector('.cap-t'); if (text) text.innerHTML = U.rich(tip);
+    const R = S.sol.R, step = X.pathSteps(S.pb, R, S.sol.ans[S.qi], value)[S.step];
+    box.querySelector('.calc-body').replaceChildren(h('p.cap-t', { html: U.rich(step.text) }), h('div', { html: VA.stepHTML(step) }));
     const curve = box.querySelector('canvas.potential-curve'); if (curve) drawPotentialCurve(curve, R, f.a, f.b, value);
   }
   X.renderCap = function () {
     const box = U.$('#caption'), f = S.f;
+    if (S.curveResize) { S.curveResize.disconnect(); S.curveResize = null; }
     if (!f || !S.pb) { box.hidden = true; return; }
     box.hidden = false;
     const R = S.sol.R, u = R.units, o = S.sol.ans[S.qi], close = K.btn('退出探究', () => { X.stopPath(); S.qi = -1; X.focus(null); X.renderProblem(); W.r.cam.reset(W.AD * 1.2, false, true); }, 'mini');
@@ -134,31 +150,25 @@
       kids.push(h('div.cap-nav', null, K.btn('‹', () => { if (S.step > 0) { S.step--; X.focusStep(); } }, 'mini'), h('span.cap-dots', null, o.plan.map((_, j) => h('i', { class: j === S.step ? 'on' : j < S.step ? 'done' : '' }))), close,
         K.btn(S.step === n - 1 ? '完成' : '下一步 ›', () => { if (S.step < n - 1) { S.step++; X.focusStep(); } else close.click(); }, 'mini primary')));
       box.replaceChildren(...kids);
-    } else if (f.kind === 'path') {
-      const a = R.pts[f.a].p, b = R.pts[f.b].p, p = V.lerp(a, b, f.s), s = R.field(p);
-      const T = s.ok ? s.E : [0, 0, 0], t = V.norm(V.sub(b, a)), Ep = V.dot(T, t), th = V.len(T) > 1e-12 ? VA.ang(T, t) : 90;
-      const sl = K.slider({ label: '点 X 的位置 ' + f.a + 'X : ' + f.a + f.b, min: 0.02, max: 0.98, step: 0.001, val: f.s, on: v => updatePath(v) });
-      const curve = h('canvas.potential-curve', { 'aria-label': '电势沿路径变化曲线' });
-      requestAnimationFrame(() => drawPotentialCurve(curve, R, f.a, f.b, f.s));
-      const tip = !s.ok ? 'X 点处的场强未定义。' : V.len(T) <= 1e-12 ? 'X 点的合场强为零，此处电势沿路径的变化率为零。'
-        : '合场强与路径方向的夹角约为 ' + VA.f4(th) + '°，合场强沿路径方向的分量 E_∥ 约为 ' + VA.f4(Ep) + (u.E ? ' ' + u.E : '') + '。' +
-          (Ep > 1e-9 ? '夹角小于 90°，所以在 X 点附近沿路径电势降低。' : Ep < -1e-9 ? '夹角大于 90°，所以在 X 点附近沿路径电势升高。' : '合场强与路径垂直，所以在 X 点附近电势沿路径的变化率为零。');
-      box.replaceChildren(h('div.cap-h', null, h('span.cap-n', null, '从 ' + f.a + ' 到 ' + f.b + ' 的路径'), h('b', null, '拖动点 X，观察合场强与路径方向的夹角')), sl,
-        h('div.cap-curve-wrap', null, curve), h('div.cap-nav', null, h('span'), K.btn(S.pathPlaying ? '暂停动画' : '播放路径', () => { S.pathPlaying = !S.pathPlaying; if (S.pathPlaying) S.pathRaf = requestAnimationFrame(animatePath); else { cancelAnimationFrame(S.pathRaf); S.pathRaf = 0; } X.renderCap(); }, 'mini')),
-        h('p.cap-t', { html: U.rich(tip) }), h('div.cap-nav', null, h('span'), close));
-    } else if (f.kind === 'probe') {
-      const rows = [['观察点', '坐标 / L', '所在区域', 'φ', '|E|']];
-      f.pts.forEach((p, i) => { const s = R.field(p); rows.push([f.names ? f.names[i] : '点 ' + (i + 1), fmtP(p), s.region || '—', isFinite(s.V) ? X.niceNum(s.V).text : '未定义', s.E.every(isFinite) ? X.niceNum(V.len(s.E)).text : '未定义']); });
-      box.replaceChildren(h('div.cap-h', null, h('span.cap-n', null, EL.SUB08[S.pb.sub].name), h('b', null, '观察点的读数（由实验室的解析场计算）')), h('div', { html: VA.stepHTML({ rows }) }),
-        h('p.cap-t', null, '白色箭头表示观察点合场强的方向。打开“电场线”，比较各区域电场线的疏密与方向。'), h('div.cap-nav', null, h('span'), close));
-    } else if (f.kind === 'pairs') {
-      const src = R.sources, n = src.length, e = X.diskEnergy(S.pb.disk);
-      box.replaceChildren(h('div.cap-h', null, h('span.cap-n', null, '总相互作用能'), h('b', null, '每一对电荷只计算一次')),
-        h('p.cap-t', { html: U.rich('图中虚线连接每一对电荷，共 ' + n + ' × ' + (n - 1) + ' / 2 = ' + n * (n - 1) / 2 + ' 对。总相互作用能 U 约为 ' + VA.f4(e.U) + ' ' + u.U + '。') }), h('div.cap-nav', null, h('span'), close));
     } else {
-      const rows = [['点', ...R.sources.map(s => 'kq_' + s.label + '/r'), 'φ']];
-      for (const n of f.at) { const p = R.pts[n].p, ts = R.sources.map(s => s.q / V.dist(p, s.p)); rows.push([n, ...ts.map(VA.f4), VA.txtV(ts.reduce((x, y) => x + y, 0))]); }
-      box.replaceChildren(h('div.cap-h', null, h('span.cap-n', null, '电势是标量'), h('b', null, '把各场源电荷产生的电势连同正负号相加')), h('div', { html: VA.stepHTML({ rows }) }), h('div.cap-nav', null, h('span'), close));
+      const steps = f.kind === 'path' ? X.pathSteps(S.pb, R, o, f.s) : S.calc, st = steps[S.step];
+      const kids = [h('div.cap-h', null, h('span.cap-n', null, '计算推导 ' + (S.step + 1) + ' / ' + steps.length), h('b', { html: U.rich(st.title) }))];
+      if (f.kind === 'path') {
+        kids.push(K.slider({ label: '点 X 的位置 s = ' + f.a + 'X / ' + f.a + f.b, min: 0.02, max: 0.98, step: 0.001, val: f.s, on: v => updatePath(v) }));
+        kids.push(h('div.cap-nav', null, h('span'), K.btn(S.pathPlaying ? '暂停动画' : '播放路径', () => { S.pathPlaying = !S.pathPlaying; if (S.pathPlaying) S.pathRaf = requestAnimationFrame(animatePath); else { cancelAnimationFrame(S.pathRaf); S.pathRaf = 0; } X.renderCap(); }, 'mini')));
+      }
+      kids.push(h('div.calc-body', null, h('p.cap-t', { html: U.rich(st.text) }), h('div', { html: VA.stepHTML(st) })));
+      if (st.id === 'pathConclusion') {
+        const curve = h('canvas.potential-curve', { 'aria-label': '电势沿路径变化曲线' });
+        kids.push(h('div.cap-curve-wrap', null, curve));
+        S.curveResize = new ResizeObserver(() => drawPotentialCurve(curve, R, f.a, f.b, f.s));
+        S.curveResize.observe(curve);
+      }
+      const prev = K.btn('‹', () => { if (S.step > 0) { X.stopPath(); S.step--; X.focusCalculation(); } }, 'mini');
+      prev.disabled = S.step === 0;
+      kids.push(h('div.cap-nav', null, prev, h('span.cap-dots', null, steps.map((_, j) => h('i', { class: j === S.step ? 'on' : j < S.step ? 'done' : '' }))), close,
+        K.btn(S.step === steps.length - 1 ? '完成' : '下一步 ›', () => { X.stopPath(); if (S.step < steps.length - 1) { S.step++; X.focusCalculation(); } else close.click(); }, 'mini primary')));
+      box.replaceChildren(...kids);
     }
   };
 })(window.EL);

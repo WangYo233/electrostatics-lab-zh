@@ -50,7 +50,7 @@ details.tip > summary { font-weight: 400; color: var(--accent-2); font-size: 12p
 details.tip p { margin: 4px 0; }
 .cap-tbl { border-collapse: collapse; margin: 4px 0; font-size: 12.5px; }
 .cap-tbl th, .cap-tbl td { border: 1px solid rgba(255,255,255,.18); padding: 2px 7px; text-align: center; }
-.stage[data-theme="light"] .cap-tbl th, .stage[data-theme="light"] .cap-tbl td { border-color: var(--line); }
+.caption[data-theme="light"] .cap-tbl th, .caption[data-theme="light"] .cap-tbl td { border-color: var(--line); }
 .cap-tbl th { font-weight: 600; opacity: .85; }
 .cap-opts .skip { background: none !important; border: 0 !important; text-decoration: underline; opacity: .7; }
 .caption { max-height: 46%; overflow: auto; }
@@ -116,5 +116,5 @@ svg.fig .fl.hl { fill: #B35C00; font-weight: 700; }
 #theoryBody math [data-mk].hl { background: #FFE7B3; border-radius: 3px; color: #8A4B00; }
 
 /* Length proofs need enough room below the model; keep the construction unobscured. */
-body.lab:not([data-mode="theory"]) .view > .caption:has(.cap-proof), body.ex .view > .caption:has(.cap-proof) { max-height: min(46vh, 420px); }
+body.lab:not([data-mode="theory"]) .view > .caption:is(:has(.cap-proof), :has(.calc-body)), body.ex .view > .caption:is(:has(.cap-proof), :has(.calc-body)) { max-height: min(46vh, 420px); }
 .formula .cap-tbl th, .formula .cap-tbl td { border-color: var(--line); }

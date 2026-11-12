@@ -80,7 +80,7 @@ label.mini { font-size: 12px; color: var(--muted); display: inline-flex; gap: 3p
 .clegend i { display: inline-block; width: 14px; height: 3px; margin-right: 4px; vertical-align: 3px; border-radius: 2px; }
 .ex { border-bottom: 1px dashed var(--line); padding: 8px 0; }
 .ex .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.ex input, .ex select { border: 1px solid var(--line); border-radius: 6px; padding: 3px 7px; min-width: 150px; background: var(--surface-2); }
+.ex:not(body) input, .ex:not(body) select, .ex-work input, .ex-work select { border: 1px solid var(--line); border-radius: 6px; padding: 3px 7px; min-width: 150px; background: var(--surface-2); }
 .fb { font-weight: 600; } .fb.ok { color: var(--ok); } .fb.bad { color: var(--bad); } .fb.show { color: var(--accent-2); font-weight: 400; }
 .fb.ok, .fb.bad { animation: pop .25s var(--ease); }
 table.rec { width: 100%; border-collapse: collapse; font-size: 12.5px; }

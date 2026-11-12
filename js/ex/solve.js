@@ -129,7 +129,19 @@
   };
   // 选择题的正确选项：场强题为大小，其余为答案本身
   X.rightOf = o => o.right != null ? o.right : o.q.t === 'E' ? o.mag : o.answer;
-  X.solve = function (pb) { const R = X.resolve(pb); return { R, ans: (pb.qs || []).map(q => X.answer(pb, R, q)) }; };
+  X.solve = function (pb) {
+    const R = X.resolve(pb), ans = (pb.qs || []).map(q => {
+      if (q.t === 'trend' && R.pts[q.a]?.p && R.pts[q.b]?.p) {
+        const a = R.pts[q.a].p, b = R.pts[q.b].p, d = V.sub(b, a), length2 = V.dot(d, d);
+        if (length2 < 1e-18) return { q, ok: false, err: '路径起点与终点重合，不能确定路径方向。' };
+        if (!R.analytic && R.sources.some(source => { const s = V.dot(V.sub(source.p, a), d) / length2; return s > 1e-9 && s < 1 - 1e-9 && V.dist(source.p, V.addS(a, d, s)) < 1e-9; })) return { q, ok: false, err: '路径中途经过场源电荷，该处电势未定义。' };
+      }
+      const o = X.answer(pb, R, q);
+      if (o.ok && q.t === 'trend') o.expl = X.pathSteps(pb, R, o, 0.3).map(st => ({ t: st.title + ': ' + st.text, tex: st.tex, rows: st.rows }));
+      return o;
+    });
+    return { R, ans };
+  };
 
   // ---- 文字：题干、问题、解析 ----
   X.stem = function (pb, R) {
