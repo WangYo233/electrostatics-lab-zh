@@ -44,6 +44,9 @@
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   };
 
+  U.exportName = '静电学实验室';
+  U.watermarkHTML = () => '<style>.export-watermark{display:block;margin:24px 0 0;padding-top:8px;border-top:1px solid #9aa6b2;text-align:center;color:#40516a;font:12px "Microsoft YaHei",Arial,sans-serif;break-inside:avoid}@media print{@page{margin:18mm 16mm 22mm}.export-watermark{position:fixed;top:45%;left:0;right:0;margin:0;border:0;padding:0;transform:rotate(-30deg);color:#d7dee6;font-size:40px;z-index:-1}}</style><footer class="export-watermark">' + U.esc(U.exportName) + '</footer>';
+
   U.store = {
     get(k, def) { try { const s = localStorage.getItem('ejp-lab:' + k); return s == null ? def : JSON.parse(s); } catch (e) { return def; } },
     set(k, v) { try { localStorage.setItem('ejp-lab:' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },

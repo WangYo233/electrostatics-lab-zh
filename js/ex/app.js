@@ -7,9 +7,8 @@
   X.setMode = function (m, now) {
     if (!now && document.body.dataset.exmode !== m && EL.motion) return EL.motion.swap(() => X.setMode(m, true));
     document.body.dataset.exmode = m;
-    U.$$('.modes button').forEach(b => b.setAttribute('aria-selected', b.dataset.mode === m));
-    const b = U.$('.modes button[data-mode="' + m + '"]'), ink = U.$('.mode-ink');
-    if (b) { ink.style.width = b.offsetWidth + 'px'; ink.style.transform = 'translateX(' + (b.offsetLeft - 3) + 'px)'; }
+    const nav = U.$('#modelSel');
+    if (nav) nav.value = m === 'teacher' ? 'add' : 'problems';
     document.title = (m === 'teacher' ? '题目添加' : '例题探究') + ' · 静电学实验室';
     if (m === 'teacher') { if (X.stopPath) X.stopPath(); X.S.f = null; U.$('#caption').hidden = true; }
     if (m === 'teacher') { if (!X.T.d) X.T.start(); else X.T.render(); }
@@ -60,7 +59,6 @@
     document.addEventListener('pointerdown', e => { if (!U.$('#elementStyle').contains(e.target)) U.$('#elementStyle').hidden = true; });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') U.$('#elementStyle').hidden = true; });
     X.renderChips(); X.renderList();
-    U.$$('.modes button').forEach(b => b.addEventListener('click', () => X.setMode(b.dataset.mode)));
     U.$('#btnTheme').addEventListener('click', () => W.setTheme(EL.theme === 'dark' ? 'light' : 'dark'));
     U.$('#btnHome').addEventListener('click', () => W.r.cam.reset(W.AD * 1.2, false, true));
     U.$('#btnTop').addEventListener('click', () => W.align([0, 0, 1]));
@@ -91,8 +89,8 @@
     if (r.mode === 'teacher') X.T.start(null, r.model ? (X.firstItem(r.model) || {}).key : null);
     const modelSel = U.$('#modelSel'), groups = [['一、基础模型', [1, 2]], ['二、对称模型', [4, 6, 5]], ['三、拓展与创作', [7, 8, 3]], ['四、例题与题目', []]];
     modelSel.replaceChildren(...groups.map(([title, ids], i) => h('optgroup', { label: title }, ids.map(id => h('option', { value: String(id) }, X.LABS[id].code + ' ' + X.LABS[id].title)).concat(i === 3 ? [h('option', { value: 'problems' }, '例题探究'), h('option', { value: 'add' }, '题目添加')] : []))));
-    modelSel.value = String(X.modelOf(X.S.pb || X.BUILTIN[0]));
-    modelSel.addEventListener('change', e => { const v = e.target.value; if (v === 'problems') { X.setMode('student'); X.open(X.BUILTIN[0]); } else if (v === 'add') location.href = 'examples.html?mode=add'; else location.href = 'examples.html?model=' + v; });
+    modelSel.value = r.mode === 'teacher' ? 'add' : 'problems';
+    modelSel.addEventListener('change', e => { const v = e.target.value; if (v === 'problems') { X.setMode('student'); X.open(X.BUILTIN[0]); } else if (v === 'add') location.href = 'examples.html?mode=add'; else location.href = 'lab.html?m=' + v; });
     X.setMode(r.mode, true);
   });
 })(window.EL);

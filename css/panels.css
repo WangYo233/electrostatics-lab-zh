@@ -87,3 +87,8 @@ table.rec { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 table.rec th, table.rec td { border: 1px solid var(--line); padding: 3px; vertical-align: top; }
 table.rec th { background: var(--surface-2); font-weight: 600; }
 table.rec textarea { width: 100%; border: 0; resize: vertical; font-size: 12.5px; background: transparent; }
+
+/* Explicit coordinate editors use the same theme as the model controls. */
+.inquiry-input { display: grid; gap: 4px; min-width: 0; font-size: 12.5px; color: var(--ink); }
+.inquiry-input input, .inquiry-input textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); color: var(--ink); font: inherit; }
+.inquiry-input input:focus, .inquiry-input textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }

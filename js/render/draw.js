@@ -141,6 +141,14 @@
       const q = this.cam.toScreen(L.p), label = this.labelPool[i], dx = label?._dx || 0, dy = label?._dy || 0;
       if (q && L.text != null) g.fillText(EL.U.plain(L.text), (q[0] + 7 + dx) * dpr, (q[1] - 4 + dy) * dpr);
     });
+    // The export watermark is painted into the pixels; the model is never rescaled.
+    const pad = 10 * dpr, size = Math.max(11, Math.min(18, this.cam.w * 0.025)) * dpr;
+    g.font = '600 ' + size + 'px "Microsoft YaHei", Arial, sans-serif';
+    const text = EL.U.exportName, width = Math.min(c.width - 2 * pad, g.measureText(text).width + 2 * pad), height = size + 1.4 * pad;
+    g.fillStyle = 'rgba(15, 28, 48, 0.86)';
+    g.fillRect(c.width - width - pad, c.height - height - pad, width, height);
+    g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, c.width - width / 2 - pad, c.height - height / 2 - pad, Math.max(1, width - pad));
     return c.toDataURL('image/png');
   };
 })(window.EL);

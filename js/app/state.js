@@ -22,12 +22,13 @@
       cs: 0, answers: {},
       // 标注：各类标签开关、用户标注点
       labels: { charges: true, points: true, levels: true, axes: true, vectors: true, angles: true, scale: 1 },
-      notes: [],
+      notes: [], inquiry: EL.ProbeMotion ? EL.ProbeMotion.defaults() : null,
       // 几何关系辅助：探针—源连线与距离、源—源连线、两源方向夹角
       geo: { probeLines: false, srcLines: false, angle: [] },
       // 场强合成向导
       wiz: { on: false, i: 0, ans: {}, hide: true }
     };
+    if (st.inquiry && m.analytic) st.inquiry.maxScope = 'box';
     for (const q of m.params) st.p[q.key] = q.val;
     for (const t of m.toggles || []) st.p[t.key] = t.val;
     Object.assign(st, m.display || {});
@@ -62,7 +63,7 @@
     for (const k of ANIM_KEYS) an[k] = st.anim[k];
     return JSON.stringify({ stage: st.stage, sub: st.sub, p: st.p, hidden: st.hidden, custom: st.custom, view: st.view, plane: st.plane, planePos: st.planePos,
       layers: st.layers, level: st.level, spacing: st.spacing, count: st.count, seeds: st.seeds, quality: st.quality, probeLevel: !!st.probeLevel, vecN: st.vecN || null,
-      showSpecial: st.showSpecial, style: st.style, labels: st.labels, notes: st.notes, geo: st.geo, anim: an,
+      showSpecial: st.showSpecial, style: st.style, labels: st.labels, notes: st.notes, geo: st.geo, inquiry: st.inquiry, anim: an,
       comp: { show: st.comp.show, pick: st.comp.pick, method: st.comp.method, total: st.comp.total, groups: st.comp.groups, plane: st.comp.plane }, theme: EL.theme,
       colors: U.store.get('colors:' + EL.theme, {}) });
   };
@@ -85,6 +86,7 @@
     H.cur = json;                          // 先设定当前状态：恢复过程中的 A.update 不会再记一步
     const sub0 = st.sub, view0 = st.view, stage0 = st.stage;
     for (const k of ['stage', 'sub', 'hidden', 'custom', 'view', 'plane', 'planePos', 'level', 'spacing', 'count', 'seeds', 'quality', 'probeLevel', 'showSpecial', 'notes']) st[k] = d[k];
+    if (EL.ProbeMotion) st.inquiry = EL.ProbeMotion.clean(d.inquiry);
     if (d.vecN) st.vecN = d.vecN; else delete st.vecN;
     for (const k of Object.keys(st.p)) delete st.p[k];
     Object.assign(st.p, d.p);
@@ -304,6 +306,10 @@
     if (path) c.probe = { path, t: p[path.key], pos: path.pos(p[path.key]), name: pr.nameFn ? pr.nameFn() : 'P' };
     else if (fixed) c.probe = { pos: fixed.pos, name: fixed.name, fixed: true };
     else if (pr.free) c.probe = { pos: pr.free.map(k => p[k]), free: pr.free, name: 'P' };
+    if (EL.ProbeMotion && st.inquiry && c.probe && c.probe.free) {
+      c.probe.pos = EL.ProbeMotion.project(c.probe.pos, st.inquiry);
+      c.probe.free.forEach((key, i) => { p[key] = c.probe.pos[i]; });
+    }
     if (c.probe) { c.probe.s = c.F.sample(c.probe.pos); c.probe.own = !!pr.ownVectors; }
     // 构造步骤
     c.cs = A.stepState(c);

@@ -6,6 +6,7 @@
   A.update = function () {
     const st = A.st;
     A.c = A.ctx();
+    U.$('#btnTop').disabled = st.view !== '3d';
     A.r.cam.mode = st.view; A.r.cam.plane = st.plane; A.r.cam.planePos = st.planePos;
     A.r.setScene(A.buildScene(A.c, () => A.update()));
     A.r.cam.handles = A.handles(A.c);
@@ -15,7 +16,10 @@
       A.renderReadings(A.c);
       A.renderCurves(A.c);
       A.renderCaption();
+      if (A.c.probe && A.c.probe.free) for (const key of A.c.probe.free) { const q = st.model.params.find(x => x.key === key); if (q) syncCtl(q.label, st.p[key]); }
+      syncCtl('路径进度', st.inquiry.t);
     }
+    if (A.refreshMaximumText) A.refreshMaximumText(A.c);
     A.dirty = true;
     A.histSoon && A.histSoon();   // 撤销记录：同一轮事件内的多次更新合并为一步（见 state.js）
   };
@@ -71,6 +75,10 @@
   };
   // 工作区：理论 / 探究 / 分析 / 记录，每个工作区只呈现对应的一组功能
   A.setMode = function (mode, now) {
+    // A canvas/curve fullscreen cannot display the sibling workspace panels.
+    if (document.fullscreenElement && document.body.dataset.mode !== mode) {
+      return document.exitFullscreen().then(() => A.setMode(mode, now));
+    }
     // 切换到另一个工作区时交叉淡入。只执行最后一次请求的切换，快速连点不会被旧的切换覆盖；
     // 交叉淡入期间 A.modeTarget 就是新工作区，紧接着调用的代码（例如开始合成向导）据此判断
     if (!now && document.body.dataset.mode !== mode && EL.motion) {
@@ -172,9 +180,7 @@
     U.$('#theoryTitle').textContent = m.analytic ? m.title + ' · ' + EL.SUB08[A.st.sub].name : m.title;
     U.$('#theoryStages').replaceChildren(...[['t-basic', '一、基础学习'], ['t-model', '二、模型嵌入'], ['t-inquiry', '三、实验探究']].map(([id, n]) =>
       h('li', null, h('button', { type: 'button', class: 'link', 'data-target': id, onclick: () => U.$('#' + id).scrollIntoView({ behavior: 'smooth', block: 'start' }) }, n))));
-    // 探究：例题探究打开本模型的例题
-    const side = U.$('#theory .tp-side'), exA = U.$('.tp-go a[href^="examples.html"]', side);
-    if (exA) exA.href = 'examples.html?model=' + encodeURIComponent(m.id);
+    const side = U.$('#theory .tp-side');
     // 模型预览：放在目录与探究之后，标注与本节核心公式的符号对应
     if (A.renderPreview && side) {
       let pv = U.$('#theoryPreview', side);
@@ -219,7 +225,7 @@
     if (resume && a.paused) a.t0 = now0 - a.elapsed;
     else {
       a.t0 = now0; a.n = 0;
-      a.base = { planePos: st.planePos, p: Object.assign({}, st.p), custom: st.custom && JSON.parse(JSON.stringify(st.custom)), probe: c.probe && c.probe.pos.slice() };
+      a.base = { planePos: st.planePos, p: Object.assign({}, st.p), custom: st.custom && JSON.parse(JSON.stringify(st.custom)), probe: c.probe && c.probe.pos.slice(), routeT: st.inquiry.t };
       if (/^src/.test(a.target)) { a.base.custom0 = a.base.custom; A.ensureCustom(c); a.base.custom = JSON.parse(JSON.stringify(st.custom)); }
       const R = A.sliceRange(c);
       a.base.sliceAmp = R; a.base.ph = Math.asin(U.clamp(st.planePos / R, -1, 1));
@@ -237,6 +243,9 @@
         const R = B.sliceAmp;
         st.planePos = +(R * Math.sin(B.ph + th)).toFixed(3);
         syncCtl('截面位置 ' + cc.planeName + ' / L', st.planePos);
+      } else if (a.target === 'route') {
+        const phase = (B.routeT * 0.5 + th / (2 * Math.PI)) % 1;
+        A.moveRouteProbe(phase <= 0.5 ? phase * 2 : 2 - phase * 2);
       } else if (a.target === 'path') {
         const pa = cc.probe.path, mid = (pa.range[0] + pa.range[1]) / 2, half = (pa.range[1] - pa.range[0]) / 2;
         st.p[pa.key] = +(mid + half * 0.98 * Math.sin((B.pathPh || 0) + th)).toFixed(4);
@@ -270,8 +279,8 @@
   A.pauseAnim = function () {
     const a = A.st.anim;
     if (!a.on) return;
-    a.on = false; a.paused = true; a.elapsed = performance.now() - a.t0; cancelAnimationFrame(A.raf); a.sig = animSig();
-    A.update(); A.renderPanel();
+    a.on = false; a.paused = true; a.elapsed = performance.now() - a.t0; cancelAnimationFrame(A.raf);
+    A.update(); a.sig = animSig(); A.renderPanel();
   };
   A.stopAnim = function () {
     const a = A.st.anim, was = a.on || a.paused;
@@ -283,7 +292,7 @@
     a.on = false; a.paused = false; cancelAnimationFrame(A.raf);
     if (B) {
       if (a.target === 'slice') st.planePos = B.planePos;
-      else if (a.target === 'path' || a.target === 'probe' || /^par:/.test(a.target)) Object.assign(st.p, B.p);
+      else if (a.target === 'path' || a.target === 'probe' || a.target === 'route' || /^par:/.test(a.target)) { Object.assign(st.p, B.p); if (a.target === 'route') st.inquiry.t = B.routeT; }
       else if (/^src/.test(a.target)) st.custom = B.custom0 ? JSON.parse(JSON.stringify(B.custom0)) : B.custom0 === null ? null : st.custom;
     }
     st.trail = []; st.eTrail = []; st.sliceTrail = [];
@@ -292,12 +301,13 @@
 
   // ---- 草稿 ----
   const draftKey = () => 'draft:' + A.st.model.id;
-  A.snapshot = () => { const st = A.st; return JSON.stringify({ v: 2, model: st.model.id, stage: st.stage, notes: st.notes, labels: st.labels, geo: st.geo, p: st.p, hidden: st.hidden, sub: st.sub, custom: st.custom, view: st.view, plane: st.plane, planePos: st.planePos, layers: st.layers, level: st.level, spacing: st.spacing, count: st.count, probeLevel: !!st.probeLevel, seeds: st.seeds, quality: st.quality, style: st.style, cam: { theta: A.r.cam.theta, phi: A.r.cam.phi, dist: A.r.cam.dist, half: A.r.cam.half } }); };
+  A.snapshot = () => { const st = A.st; return JSON.stringify({ v: 2, model: st.model.id, stage: st.stage, notes: st.notes, labels: st.labels, geo: st.geo, inquiry: st.inquiry, p: st.p, hidden: st.hidden, sub: st.sub, custom: st.custom, view: st.view, plane: st.plane, planePos: st.planePos, layers: st.layers, level: st.level, spacing: st.spacing, count: st.count, probeLevel: !!st.probeLevel, seeds: st.seeds, quality: st.quality, style: st.style, cam: { theta: A.r.cam.theta, phi: A.r.cam.phi, dist: A.r.cam.dist, half: A.r.cam.half } }); };
   A.restore = function (json) {
     const d = typeof json === 'string' ? JSON.parse(json) : json, st = A.st;
     if (String(d.model) !== String(st.model.id)) throw new Error('这份草稿属于另一个模型，无法载入。');
     A.stopAnim();
     for (const k of ['stage', 'notes', 'hidden', 'sub', 'custom', 'view', 'plane', 'planePos', 'level', 'spacing', 'count', 'probeLevel', 'seeds', 'quality']) if (k in d) st[k] = d[k];
+    st.inquiry = EL.ProbeMotion.clean(d.inquiry);
     if (d.labels) Object.assign(st.labels, d.labels);
     if (d.geo) Object.assign(st.geo, d.geo);
     st.wiz.on = false;
@@ -396,7 +406,7 @@
     on('#btnTop', () => { if (A.st.view === '3d') { A.r.cam.top(); A.r.draw(); } });
     on('#btnZin', () => { A.r.cam.zoomAt(1 / 1.3, A.r.cam.w / 2, A.r.cam.h / 2); A.r.draw(); });
     on('#btnZout', () => { A.r.cam.zoomAt(1.3, A.r.cam.w / 2, A.r.cam.h / 2); A.r.draw(); });
-    on('#btnReset', () => { if (!confirm('要恢复本阶段的教学参数吗？')) return; const st = A.st, m = st.model; for (const q of m.params) st.p[q.key] = q.val; for (const t of m.toggles || []) st.p[t.key] = t.val; if (!m.alwaysCustom) st.custom = null; A.gotoStage(st.stage); });
+    on('#btnReset', () => { if (!confirm('要恢复本阶段的教学参数吗？')) return; const st = A.st, m = st.model; for (const q of m.params) st.p[q.key] = q.val; for (const t of m.toggles || []) st.p[t.key] = t.val; if (!m.alwaysCustom) st.custom = null; st.inquiry = EL.ProbeMotion.defaults(); if (m.analytic) st.inquiry.maxScope = 'box'; A.maximum = null; A.gotoStage(st.stage); });
     on('#btnFull', () => { const el = U.$('#stage').closest('.view'); document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen && el.requestFullscreen(); });
     on('#btnHelp', () => { U.$('#help').hidden = false; });
     on('#closeHelp', () => { U.$('#help').hidden = true; });

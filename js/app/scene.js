@@ -168,6 +168,7 @@
     A.addProbe(c, sc);
     if (st.layers.vectors) A.addVectors(c, sc);
     A.addTrails(c, sc);
+    if (A.addInquiry) A.addInquiry(c, sc);
     // 用户标注点
     for (const nt of st.notes) { sc.spheres.push({ p: nt.p, r: R * 0.012, color: C.ang }); sc.labels.push({ p: nt.p, text: '◆ ' + nt.text, cls: 'note', kind: 'note' }); }
     // 标注筛选

@@ -81,6 +81,7 @@
           K.note('也可以在画板中直接拖动探针。')));
       }
     }
+    if (A.inquiryPanel) out.push(...A.inquiryPanel(c));
     return out;
   };
   // 模型的关键点：用于“放到关键点”和标注点
@@ -89,16 +90,31 @@
     return pts.concat(c.sources.filter(s => s.q).map(s => ({ name: '源电荷 ' + s.label + ' 附近（沿 x 方向偏移 0.5 L）', p: V.add(s.p, [0.5, 0, 0]) })));
   };
 
+  A.bindSource = function (i, binding) {
+    const st = A.st, source = st.custom && st.custom[i];
+    if (!source) return false;
+    let position = A.resolveSources()[i].p;
+    if (binding) {
+      const bg = st.hidden.bgs && st.hidden.bgs[binding.bg];
+      const point = bg && EL.GEO.build(bg).special.find(p => p.key === binding.key);
+      if (!point) return false;
+      position = point.p;
+    }
+    source.p = position.slice();
+    source.bind = binding ? { bg: binding.bg, key: binding.key } : null;
+    return true;
+  };
+
   A.sourceEditor = function (c) {
     const st = c.st, m = c.m, ed = m.editor;
     const removeCharge = i => { A.ensureCustom(c); st.custom.splice(i, 1); st.custom.forEach((s, j) => { s.label = 'Q' + (j + 1); }); A.update(); A.renderPanel(); };
     const rows = c.sources.map((s, i) => {
       const cs = st.custom && st.custom[i];
       const edit = (fn) => { A.ensureCustom(c); fn(st.custom[i]); A.update(); A.renderPanel(); };
-      return h('tr', { tabindex: '0', onkeydown: e => { if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeCharge(i); } } }, h('td', null, s.label),
+      return h('tr', { tabindex: '0', onkeydown: e => { if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeCharge(i); } } }, h('td', null, s.label),
         h('td', null, K.cell(s.q, 0.1, v => edit(x => { x.q = U.clamp(v, ed.qRange[0], ed.qRange[1]); }))),
         ...[0, 1, 2].map(k => h('td', null, cs && cs.bind ? h('span.muted', null, U.fmt(s.p[k], 3)) : K.cell(+s.p[k].toFixed(3), 0.1, v => edit(x => { x.p[k] = U.clamp(v, -ed.xyz, ed.xyz); x.bind = null; })))),
-        h('td', null, cs && cs.bind ? K.btn('解除绑定', () => edit(x => { x.p = s.p.slice(); x.bind = null; }), 'mini', '解除与背景特殊点的绑定，改为自由坐标') : null,
+        h('td', null, cs && cs.bind ? K.btn('解除绑定', () => { A.bindSource(i, null); A.update(); A.renderPanel(); }, 'mini', '解除与背景特殊点的绑定，改为自由坐标') : null,
           K.btn('删除', () => removeCharge(i), 'mini', '删除此电荷；也可聚焦此行后按 Delete')));
     });
     const kids = [h('table.src', null, h('thead', null, h('tr', null, ...['源电荷', 'q', 'x', 'y', 'z', ''].map(t => h('th', null, t)))), h('tbody', null, rows))];
@@ -111,6 +127,22 @@
     }), K.btn('删除末尾电荷', () => { A.ensureCustom(c); if (st.custom.length > 1) st.custom.pop(); A.update(); A.renderPanel(); })];
     if (!m.alwaysCustom) btns.push(K.btn('恢复标准配置', () => { st.custom = null; A.update(); A.renderPanel(); }));
     kids.push(h('div.btns', null, btns));
+    if (ed.bind) {
+      const positions = (st.hidden.bgs || []).flatMap((bg, bi) => EL.GEO.build(bg).special.map(point => ({
+        value: JSON.stringify([bi, point.key]), name: (bi + 1) + '. ' + EL.GEO.TYPES[bg.type].name + ' · ' + point.name,
+        binding: { bg: bi, key: point.key }
+      })));
+      kids.push(K.group('已有电荷绑定',
+        ...(positions.length ? c.sources.map((source, i) => {
+          const bound = st.custom[i].bind;
+          return K.select(source.label + ' — ' + '绑定位置',
+            [['', '自由坐标（不绑定）'], ...positions.map(p => [p.value, p.name])],
+            bound ? JSON.stringify([bound.bg, bound.key]) : '', value => {
+              const target = positions.find(p => p.value === value);
+              if (A.bindSource(i, target ? target.binding : null)) { A.update(); A.renderPanel(); }
+            });
+        }) : [K.note('先在下方添加几何背景，再选择已有电荷的绑定位置。')]), K.note('选择特殊点立即绑定；修改背景的位置或尺寸时，电荷随该点移动。选择自由坐标可解除绑定并保留当前位置。')));
+    }
     if (ed.placements) {
       const pl = ed.placements(st.p);
       let sel = 0, q = 1;

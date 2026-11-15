@@ -67,6 +67,7 @@
     else if (c.probeVisible && c.probe.free) t.push(['probe', '探针 P']);
     if (m.editor && (m.id === 1 || m.id === 7)) c.sources.forEach((s, i) => { if (!(st.custom && st.custom[i] && st.custom[i].bind)) t.push(['src' + i, '源电荷 ' + s.label]); });
     for (const q of A.sweepParams(c)) t.push(['par:' + q.key, '参数扫描：' + q.label.replace(/<[^>]+>/g, '')]);
+    if (c.probeVisible && c.probe.free && EL.ProbeMotion.validPath(EL.ProbeMotion.route(st.inquiry))) t.unshift(['route', '探针（沿自定义路径）']);
     return t;
   };
   // 可以扫描的模型参数：面板中可见、与探针无关的数值参数
@@ -150,6 +151,18 @@
     return out;
   };
 
+  A.removeBackground = function (bi) {
+    const st = A.st, positions = A.resolveSources();
+    st.custom.forEach((source, i) => {
+      if (!source.bind) return;
+      if (source.bind.bg === bi) { source.p = positions[i].p.slice(); source.bind = null; }
+      else if (source.bind.bg > bi) source.bind.bg--;
+    });
+    st.hidden.bgs.splice(bi, 1);
+    if (st.showSpecial === bi) st.showSpecial = -1;
+    else if (st.showSpecial > bi) st.showSpecial--;
+  };
+
   A.bgEditor = function (c) {
     const st = c.st, bgs = st.hidden.bgs, G = EL.GEO;
     let type = 'cube';
@@ -159,7 +172,7 @@
       const upd = (k, v) => { s[k] = v; A.update(); };
       return h('div.bg', null, h('div.bg-h', null, h('b', null, (bi + 1) + '. ' + G.TYPES[s.type].name),
         K.btn('显示特殊点', () => { st.showSpecial = st.showSpecial === bi ? -1 : bi; A.update(); }, 'mini', '显示或隐藏这个背景的特殊点'),
-        K.btn('删除背景', () => { bgs.splice(bi, 1); st.custom.forEach(x => { if (x.bind) { if (x.bind.bg === bi) { x.bind = null; } else if (x.bind.bg > bi) x.bind.bg--; } }); A.update(); A.renderPanel(); }, 'mini')),
+        K.btn('删除背景', () => { A.removeBackground(bi); A.update(); A.renderPanel(); }, 'mini')),
         h('div.row.wrap', null, ...[['w', s.type === 'circle' || s.type === 'sphere' ? '直径' : '宽'], ['l', '长'], ['h', '高'], ['x', 'x'], ['y', 'y'], ['z', 'z']]
           .filter(([k]) => !(k === 'l' && !['rect', 'triangle', 'pyramid', 'prism'].includes(s.type)) && !(k === 'h' && !['pyramid', 'prism'].includes(s.type)))
           .map(([k, n]) => h('label.mini', null, n, K.cell(s[k], 0.1, v => { upd(k, k === 'w' || k === 'l' || k === 'h' ? Math.max(0.1, v) : v); A.renderPanel(); }, 3.4)))),
