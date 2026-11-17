@@ -188,7 +188,7 @@
       const col = off ? V.lerp(base, C.bg, 0.45) : base;
       sc.spheres.push({ p, r: s.q ? r : r * 0.6, color: [...col, sty.chargeOpacity] });
       if (s.q) sc.glows.push({ p, r: r * (2.6 + 0.5 * Math.min(2, Math.abs(s.q))), color: base, a: off ? 0.25 : 0.5, phase: s.i || 0 });
-      sc.labels.push({ p, text: (s.label || '') + (s.q ? ' ' + (s.q > 0 ? '+' : '−') : ' (0)') + (off ? '（投影）' : ''), cls: s.q > 0 ? 'pos' : s.q < 0 ? 'neg' : 'zero' });
+      sc.labels.push({ p, text: U.chargeLabel(s.label, s.q ? (s.q > 0 ? '+' : '−') + (Math.abs(s.q) === 1 ? '' : U.fmt(Math.abs(s.q))) + 'Q' : '0') + (off ? '（投影）' : ''), cls: s.q > 0 ? 'pos' : s.q < 0 ? 'neg' : 'zero' });
     }
   };
 })(window.EL);

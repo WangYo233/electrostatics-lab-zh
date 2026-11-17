@@ -104,7 +104,7 @@
     for (const s of src) {
       const look = W.appearance[s.label] || {}, col = look.color ? U.hex(look.color) : s.q > 0 ? C.pos : C.neg, size = look.size || 1;
       out.spheres.push({ p: s.p, r: rr * size, color: col }); if (W.r.fx.glow) out.glows.push({ p: s.p, r: rr * size * 3, color: col, a: 0.45 });
-      if (L.labels) out.labels.push({ p: s.p, text: s.label + ' ' + X.qText(s.q).replace('+', '+ ').replace('−', '− '), cls: s.q > 0 ? 'pos' : 'neg' });
+      if (L.labels) out.labels.push({ p: s.p, text: U.chargeLabel(s.label, X.qText(s.q)), cls: s.q > 0 ? 'pos' : 'neg' });
     }
     const focusedPts = f && f.kind === 'plan' ? new Set([f.plan.d.pn]) : f && f.kind === 'terms' ? new Set(f.at) : f && f.kind === 'path' ? new Set([f.a, f.b]) : f && f.kind === 'point' ? new Set([f.at]) : f && f.kind === 'probe' ? new Set(f.names || []) : null;
     for (const n in R.pts) {
@@ -227,7 +227,7 @@
       const P = R.pts[n]; if (!P.p) continue;
       const q = S(P.p), c = qOf(n);
       o += c ? '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="6" fill="' + (c > 0 ? '#D55E00' : '#0072B2') + '"/>' : '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="2.8" fill="#142033"/>';
-      o += '<text x="' + (+q[0] + 8) + '" y="' + (+q[1] - 6) + '" font-size="13" fill="#142033">' + U.esc(n + (c ? '(' + X.qText(c) + ')' : '')) + '</text>';
+      o += '<text x="' + (+q[0] + 8) + '" y="' + (+q[1] - 6) + '" font-size="13" fill="#142033">' + U.esc(c ? U.chargeLabel(n, X.qText(c)) : n) + '</text>';
     }
     return '<svg viewBox="0 0 ' + Wd + ' ' + Ht + '" width="320" font-family="Times New Roman,Microsoft YaHei">' + o + '</svg>';
   };

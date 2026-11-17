@@ -34,6 +34,9 @@
   };
   U.fmtVec = (v, d) => v && v.every(isFinite) ? '(' + v.map(x => U.fmt(x, d || 4)).join(', ') + ')' : '未定义';
 
+  // Keep the location name separate from its signed charge, including image exports.
+  U.chargeLabel = (name, charge) => String(name || '') + '（' + charge + '）';
+
   U.download = function (name, data, type) {
     const blob = data instanceof Blob ? data : new Blob([data], { type: type || 'text/plain;charset=utf-8' });
     const a = document.createElement('a');
