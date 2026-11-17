@@ -23,7 +23,13 @@ for (const pb of X.BUILTIN) {
         assert.ok(Math.abs(p.slope(s) - finiteDifference) < 1e-5 * Math.max(1, Math.abs(p.slope(s))));
         for (const source of p.sources) assert.ok(Math.abs(V.dist(V.lerp(p.a, p.b, s), source.p) ** 2 - ((s * p.length - source.h) ** 2 + source.b2)) < 1e-10);
       }
-      if (p.special.kind === 'median') {
+      if (pb.id === 'tpt-triangle-three-like' && o.q.a === 'P' && o.q.b === 'G') {
+        assert.equal(p.roots.length, 0, 'PG has no interior stationary point');
+        assert.ok(1e-10 > Math.abs(p.at(0).V - 3), 'potential at P');
+        assert.ok(1e-10 > Math.abs(p.at(1).V - 3 * Math.sqrt(3)), 'potential at G');
+        assert.ok(1e-10 > Math.abs(p.slope(1)), 'zero terminal slope at G');
+        for (const s of [0.01, 0.25, 0.5, 0.99]) assert.ok(p.slope(s) > 0, 'potential increases along PG');
+      } else if (p.special.kind === 'median') {
         assert.equal(p.roots.length, 1); const r = p.roots[0];
         assert.ok(Math.abs(r - 0.5694367096060693) < 1e-10);
         assert.ok(p.slope(0.2) > 0 && p.slope(0.9) < 0);

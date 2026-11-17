@@ -131,6 +131,11 @@
       criticalTex += R`\qquad s_G=\frac23,\quad t=3s-2,\quad s_*=\frac{2+0.5694367096}{3}\approx0.8564789032`;
     }
     if (p.special?.kind === 'trianglePN') critical += L('N 是 AB 中点，两电荷的距离贡献相同，先合并 A、B 两项，再保留 C 项。求导后在 0<s<1 内寻找变号根，并检查其两侧导数；此处零的是沿 PN 的分量，不应仅由曲线极值断言三维合场强为零。', 'N is the midpoint of AB, so combine the equal-distance A and B terms before adding C. Solve for the derivative sign change in 0<s<1 and check both sides. A stationary potential here sets the PN component to zero; it does not by itself prove that the full three-dimensional field vanishes.');
+    if (pb.tpl === 'tri' && q.a === 'P' && q.b === 'G' && p.active.length === 1 &&
+        p.sources.length === 3 && p.sources.every(x => x.q > 0 && close(x.q, p.sources[0].q))) {
+      critical = L('PG 垂直于等边三角形平面，G 是三角形中心。沿 P→G，动点到 A、B、C 的距离始终相等且逐渐减小，因此三个正电荷的电势贡献同时增大。由下式可知开区间内导数为正，电势一直升高；G 是这条路径的最大值端点，G 处合场强为零，曲线在此变平。', 'PG is perpendicular to the triangle plane and G is its center. Along P to G, the equal distances to A, B and C decrease, so all three positive potential contributions increase. The derivative is positive in the open interval: potential increases throughout. G is the maximum endpoint of this path, where the total electric field and the terminal slope are zero.');
+      criticalTex = R`PG=\sqrt{\frac23}a,\quad r(s)=\sqrt{(PG)^2(1-s)^2+\frac{a^2}{3}}\qquad\varphi(s)=\frac{3kQ}{r(s)},\quad\frac{d\varphi}{ds}=\frac{3kQ\,(PG)^2(1-s)}{r(s)^3}>0\quad(0\le s<1)\qquad\varphi_P=\frac{3kQ}{a},\quad\varphi_G=\frac{3\sqrt3kQ}{a}`;
+    }
     steps.push({ id: 'pathCritical', title: L('解驻点方程，并检查分界点', 'Solve for stationary points and check boundaries'), text: critical, tex: criticalTex,
       rows: [[L('左界', 'Left bracket'), L('右界', 'Right bracket'), 's_*', '|dφ/ds|'], ...(p.brackets.length ? p.brackets.map(b => [EL.U.fmt(b.lo, 6), EL.U.fmt(b.hi, 6), EL.U.fmt(b.s, 7), EL.U.fmt(Math.abs(p.slope(b.s)), 3)]) : [[L('无内部变号根', 'No interior sign-change root'), '—', '—', '—']])] });
     steps.push({ id: 'pathConclusion', title: L('由导数符号得到分段变化，再核对曲线', 'Infer the trend from derivative signs, then check the curve'),
