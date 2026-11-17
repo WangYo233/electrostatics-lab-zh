@@ -104,29 +104,45 @@
     for (const s of src) {
       const look = W.appearance[s.label] || {}, col = look.color ? U.hex(look.color) : s.q > 0 ? C.pos : C.neg, size = look.size || 1;
       out.spheres.push({ p: s.p, r: rr * size, color: col }); if (W.r.fx.glow) out.glows.push({ p: s.p, r: rr * size * 3, color: col, a: 0.45 });
-      if (L.labels) out.labels.push({ p: s.p, text: U.chargeLabel(s.label, X.qText(s.q)), cls: s.q > 0 ? 'pos' : 'neg' });
+      if (L.labels) out.labels.push({ id: 'charge:' + s.label, p: s.p, text: U.chargeLabel(s.label, X.qText(s.q)), cls: s.q > 0 ? 'pos' : 'neg' });
     }
     const focusedPts = f && f.kind === 'plan' ? new Set([f.plan.d.pn]) : f && f.kind === 'terms' ? new Set(f.at) : f && f.kind === 'path' ? new Set([f.a, f.b]) : f && f.kind === 'point' ? new Set([f.at]) : f && f.kind === 'probe' ? new Set(f.names || []) : null;
     for (const n in R.pts) {
       const P = R.pts[n];
       if (!P.p || R.sources.some(s => s.label === n)) continue;
-      if (focusedPts && !focusedPts.has(n)) continue;
-      if (P.vertex) { if (L.labels) out.labels.push({ p: M(P.p), text: n, cls: 'pt' }); continue; }
+      const inactive = !!focusedPts && !focusedPts.has(n);
+      if (P.vertex) { if (L.labels) out.labels.push({ id: 'point:' + n, p: M(P.p), text: n, cls: 'pt', hidden: inactive }); continue; }
       const look = W.appearance['point:' + n] || {};
       MH.mark(out, M(P.p), L.labels ? n : null, look.color ? U.hex(look.color) : C.mark, AD * 0.022 * (look.size || 1));
+      if (L.labels) Object.assign(out.labels[out.labels.length - 1], { id: 'point:' + n, hidden: inactive });
     }
-    if (f && f.kind === 'plan' && f.plan) VA.draw(f.plan, f.k, out, { MH, C, map: M, step: f.step, R: AD * 1.15 });
+    if (f && f.kind === 'plan' && f.plan) {
+      const inactive = out.labels.filter(label => label.hidden);
+      out.labels = out.labels.filter(label => !label.hidden);
+      const start = out.labels.length;
+      VA.draw(f.plan, f.k, out, { MH, C, map: M, step: f.step, R: AD * 1.15 });
+      const phase = f.plan[f.step == null ? f.k : f.step]?.id;
+      let referenceShown = false;
+      for (const label of out.labels.slice(start)) {
+        if (phase === 'list' && label.kind === 'vectors' && !String(label.text).startsWith('r_')) label.hidden = true;
+        if (phase === 'combine' && /^E_[^=]+=E₀$/.test(label.text)) { label.hidden = referenceShown; referenceShown = true; }
+      }
+      out.labels.push(...inactive.filter(label => !out.labels.some(other => other.text === label.text && V.dist(other.p, label.p) < 1e-8)));
+    }
     if (f && f.kind === 'path') {
       const a = R.pts[f.a].p, b = R.pts[f.b].p, p = V.lerp(a, b, f.s), s = R.field(p);
       out.lines.push({ pts: [M(a), M(b)], color: C.path, width: 1.6, dash: [0.12, 0.08] });
       MH.mark(out, M(p), 'X', C.probe, AD * 0.025);
       const proof = f.proof, phase = f.phase;
       const label = (p, text) => out.labels.push({ p: M(p), text, cls: 'pt vec' });
+      const pathLength = out.labels.length;
       label(V.lerp(a, b, 0.7), 'ℓ=' + VA.cell(V.dist(a, b)) + ' ' + R.units.L);
-      if (proof && ['pathDistances', 'pathPotential', 'pathDerivative'].includes(phase)) for (const source of proof.sources) {
+      out.labels[pathLength].hidden = phase !== 'pathGeometry';
+      if (proof && ['pathDistances', 'pathPotential'].includes(phase)) for (const source of proof.sources) {
         MH.dash(out, M(source.p), M(p), C.guide);
         label(V.lerp(source.p, p, 0.5), 'r_' + source.label + '=' + U.fmt(V.dist(source.p, p), 4));
         if (phase === 'pathDistances') {
+          const auxiliaryStart = out.labels.length;
           MH.dash(out, M(a), M(source.foot), C.path);
           MH.dash(out, M(source.p), M(source.foot), C.ang);
           const peers = proof.sources.filter(x => V.dist(x.foot, source.foot) < 1e-9);
@@ -137,6 +153,9 @@
           }
           if (source.b2 > 0) label(V.lerp(source.p, source.foot, 0.5), 'b_' + source.label + '=' + U.fmt(Math.sqrt(source.b2), 4));
           MH.right(out, M(source.foot), V.sub(source.p, source.foot), proof.t, AD * 0.025);
+          // One non-degenerate right triangle explains h_i and b_i; all other labels remain available in the menu.
+          const representative = proof.sources.find(x => x.b2 > 1e-12) || proof.sources[0];
+          for (let i = auxiliaryStart; i < out.labels.length; i++) out.labels[i].hidden = source !== representative;
         }
       }
       if (R.analytic && ['pathDistances', 'pathPotential', 'pathDerivative'].includes(phase)) {
@@ -147,19 +166,19 @@
         if (/plane|interface|dielectric-sphere/.test(pb.sub)) { MH.dash(out, [0, 0, 0], M(foot), C.guide); label(foot, 'z(s)=' + VA.cell(p[2])); }
       }
       if (proof && ['pathCritical', 'pathConclusion'].includes(phase)) {
-        proof.roots.forEach((s, i) => MH.mark(out, M(V.lerp(a, b, s)), 's*' + (i + 1) + '=' + U.fmt(s, 5), C.probe, AD * 0.025));
+        proof.roots.forEach((s, i) => { MH.mark(out, M(V.lerp(a, b, s)), 's*' + (i + 1) + '=' + U.fmt(s, 5), C.probe, AD * 0.025); out.labels[out.labels.length - 1].offset = [4, 26]; });
         proof.boundaries.filter(s => s > 0 && s < 1).forEach(s => MH.mark(out, M(V.lerp(a, b, s)), 's=' + U.fmt(s, 5), C.mark, AD * 0.025));
       }
       if (s.ok && ['pathDerivative', 'pathCritical', 'pathConclusion'].includes(phase)) {
         const T = s.E, t = V.norm(V.sub(b, a)), k = AD * 0.4 / Math.max(1e-9, V.len(T));
-        MH.vec(out, M(p), V.mul(T, k), C.sum, 'E', 'sum', 3);
-        MH.vec(out, M(p), V.mul(t, AD * 0.3), C.path, '路径方向', 'pt', 1.6);
+        if (phase === 'pathDerivative') MH.vec(out, M(p), V.mul(T, k), C.sum, 'E', 'sum', 3);
+        if (phase === 'pathDerivative') MH.vec(out, M(p), V.mul(t, AD * 0.3), C.path, '路径方向', 'pt', 1.6);
         const component = V.mul(t, V.dot(T, t));
         if (V.len(component) > 1e-12) {
           MH.vec(out, M(p), V.mul(component, k), C.part, 'E∥', 'vec', 2);
-          MH.dash(out, V.add(M(p), V.mul(T, k)), V.add(M(p), V.mul(component, k)), C.guide);
+          if (phase === 'pathDerivative') MH.dash(out, V.add(M(p), V.mul(T, k)), V.add(M(p), V.mul(component, k)), C.guide);
         }
-        if (V.len(T) > 1e-12) MH.arc(out, M(p), T, t, AD * 0.12);
+        if (phase === 'pathDerivative' && V.len(T) > 1e-12) MH.arc(out, M(p), T, t, AD * 0.12);
       }
     }
     if (f && f.kind === 'terms') for (const n of f.at) {
@@ -187,6 +206,21 @@
       MH.mark(out, [0, 0, 0], 'O', C.mark, AD * 0.015);
       if (pb.sub === 'dielectric-sphere' && pb.sp.E0) MH.vec(out, M([R.ext * 0.8, 0, 0]), [0, 0, Math.sign(pb.sp.E0) * AD * 0.35], C.path, 'E₀=' + VA.cell(pb.sp.E0), 'vec', 2);
     }
+    // Numeric readouts change along a path; keep their semantic identity and user placement.
+    const identities = new Map();
+    out.labels = out.labels.filter(label => {
+      if (!label.id) {
+        const point = Object.keys(R.pts).find(n => label.text === n && V.dist(label.p, M(R.pts[n].p)) < 1e-8);
+        const symbol = String(label.text).replace(/=[^=]*$/, '');
+        label.id = point ? 'point:' + point : (f?.kind || 'model') + ':' + (label.kind || label.cls || 'label') + ':' + symbol;
+      }
+      const existing = identities.get(label.id);
+      if (existing && V.dist(existing.p, label.p) < 1e-8) { existing.hidden = !!existing.hidden && !!label.hidden; return false; }
+      if (existing) label.id += ':' + out.labels.indexOf(label);
+      identities.set(label.id, label);
+      return true;
+    });
+    if (!L.labels) out.labels = [];
     W.r.setScene(out);
   };
   // 解析场模型的几何：点电荷、z 轴上的线电荷、z=0 平面、球

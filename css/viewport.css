@@ -68,3 +68,12 @@
 .err { padding: 30px; color: #ff9aa9; }
 @media (max-width: 900px) { .hud { width: 190px; } .sb-layers button { padding: 4px 6px; } .legend { display: none; } }
 @media (max-width: 560px) { .sb-layers { display: none; } }
+
+/* Labels remain attached to their projected point; hold to adjust nearby. */
+.labels .lbl { pointer-events: auto; touch-action: none; user-select: none; cursor: grab; }
+.labels .lbl.dragging { cursor: grabbing; outline: 1px dashed currentColor; outline-offset: 3px; }
+.annotation-menu { position: fixed; z-index: 120; display: flex; flex-direction: column; gap: 5px; padding: 8px; max-width: calc(100vw - 16px); color: #eef4fc; background: #172338; border: 1px solid #63748b; border-radius: 8px; box-shadow: 0 8px 28px #0005; }
+.annotation-menu[data-theme="light"] { color: #172033; background: #fff; border-color: #8b9bb0; }
+.annotation-menu[hidden] { display: none; }
+.annotation-menu button { padding: 8px 12px; color: inherit; background: transparent; border: 1px solid transparent; text-align: left; border-radius: 5px; }
+.annotation-menu button:hover, .annotation-menu button:focus-visible { color: inherit; background: #6589b133; border-color: #7898ba; }

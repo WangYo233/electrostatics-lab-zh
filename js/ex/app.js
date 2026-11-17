@@ -36,6 +36,16 @@
       const size = K.slider({ label: isCharge ? '电荷显示大小' : '探针标记大小', min: 0.6, max: 2.4, step: 0.1, val: look.size || 1, on: v => saveLook({ size: v }) });
       children.push(size);
     }
+    children.push(h('hr'), K.check('显示标注', W.layers.labels, value => {
+      W.layers.labels = value; X.renderChips(); if (W.last) W.show(...W.last); openElementStyle(e);
+    }));
+    const labels = W.r.scene.labels || [], keyOf = (label, i) => W.r.getLabelKey(label, i);
+    const ownKey = isCharge ? 'charge:' + hit.key : isPoint ? hit.key : null;
+    const own = labels.findIndex(label => label.id === ownKey);
+    if (own >= 0) children.push(K.check('显示此元素标注', W.r.isLabelVisible(labels[own], own), value => W.r.setLabelVisible(keyOf(labels[own], own), value)));
+    if (labels.length) children.push(h('details', null, h('summary', null, '逐项显示标注'), labels.map((label, i) =>
+      K.check(U.plain(label.text), W.r.isLabelVisible(label, i), value => W.r.setLabelVisible(keyOf(label, i), value)))));
+    children.push(K.btn('恢复默认标注与位置', () => { W.r.resetLabels(); menu.hidden = true; }, 'mini'), h('small', null, '右键标注可隐藏或复位；长按标注后可在对应元素附近拖动。'));
     const fx = U.store.get('ex:fx', { glow: W.r.fx.glow, reveal: W.r.fx.reveal });
     const glow = K.check('电荷光晕脉动（画板级）', W.r.fx.glow, v => { W.r.fx.glow = v; fx.glow = v; U.store.set('ex:fx', fx); if (W.last) W.show(...W.last); });
     const reveal = K.check('电场线逐步绘出（开启电场线后生效）', W.r.fx.reveal, v => { W.r.fx.reveal = v; fx.reveal = v; U.store.set('ex:fx', fx); if (v) W.r.playReveal(); });

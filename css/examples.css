@@ -82,3 +82,37 @@ body.ex .stage .stagebar { left: 12px; right: auto; width: auto; }
 .ta { font-size: 12.5px; border-top: 1px dashed var(--line); padding-top: 6px; margin-top: 6px; } .ta p { margin: 2px 0; } .ta ul { margin: 2px 0; padding-left: 18px; }
 @media (max-width: 1100px) { .ex-work { grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: minmax(420px, 1fr) auto; } .ex-right { grid-column: 1 / -1; max-height: 45vh; } }
 @media (max-width: 720px) { .ex-work { display: flex; flex-direction: column; } .ex-left, .ex-right { max-height: none; } .ex .view { flex: none; min-height: 72vh; grid-template-rows: minmax(340px, 1fr) auto; padding: 8px; } .ex .caption { max-height: 30vh; } .stage { min-height: 0; } }
+
+/* Drag handles reserve their own space; guide and model remain disjoint. */
+@media (min-width: 1101px) {
+  body.ex .ex-work { grid-template-columns: var(--ex-left, 250px) 8px minmax(320px, 1fr) 8px var(--ex-right, 380px); }
+}
+.ex-divider { background: var(--surface-2); cursor: col-resize; touch-action: none; border-inline: 1px solid var(--line); position: relative; }
+.ex-divider::after { content: ''; position: absolute; height: 36px; width: 2px; background: var(--muted); top: calc(50% - 18px); left: 2px; }
+.ex-divider:focus-visible, .guide-resize:focus-visible, .guide-grip:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+body.ex .view.has-guide, body.ex .view.has-guide:fullscreen { grid-template-rows: minmax(180px, 1fr) var(--guide-extent, 310px); grid-template-columns: minmax(0, 1fr); }
+body.ex .view.has-guide[data-guide-dock=top] { grid-template-rows: var(--guide-extent, 310px) minmax(180px, 1fr); }
+body.ex .view.has-guide[data-guide-dock=top] > .stage { grid-row: 2; }
+body.ex .view.has-guide[data-guide-dock=top] > .caption { grid-row: 1; }
+body.ex .view.has-guide[data-guide-dock=left], body.ex .view.has-guide[data-guide-dock=right] { grid-template-rows: minmax(0, 1fr); grid-template-columns: var(--guide-extent, 280px) minmax(180px, 1fr); }
+body.ex .view.has-guide[data-guide-dock=right] { grid-template-columns: minmax(180px, 1fr) var(--guide-extent, 280px); }
+body.ex .view.has-guide[data-guide-dock=left] > .stage { grid-column: 2; grid-row: 1; }
+body.ex .view.has-guide[data-guide-dock=left] > .caption { grid-column: 1; grid-row: 1; }
+body.ex .view.has-guide[data-guide-dock=right] > .stage { grid-column: 1; grid-row: 1; }
+body.ex .view.has-guide[data-guide-dock=right] > .caption { grid-column: 2; grid-row: 1; }
+body.ex .view.has-guide > .caption, body.ex .view.has-guide:fullscreen > .caption { max-height: none; width: 100%; min-width: 0; min-height: 0; height: 100%; align-self: stretch; position: relative; padding-top: 0; padding-bottom: 16px; overflow: auto; animation: none; }
+.guide-grip { display: flex; align-items: center; justify-content: space-between; gap: 8px; position: sticky; top: 0; z-index: 4; background: #172338; color: #f2f6fc; border-bottom: 1px solid #62738b; margin: 0 -10px 8px; padding: 6px 10px; font-size: 12px; cursor: grab; touch-action: none; user-select: none; }
+.caption[data-theme=light] .guide-grip { color: #172033; background: #f1f4f8; border-color: #aeb9c8; }
+.guide-grip button { flex: none; min-width: 28px; color: inherit; border: 1px solid currentColor; border-radius: 4px; background: transparent; cursor: pointer; }
+.guide-resize { position: sticky; display: block; float: right; bottom: -10px; width: 28px; height: 12px; margin-right: -8px; border-bottom: 3px double currentColor; border-right: 3px double currentColor; cursor: ns-resize; touch-action: none; opacity: .8; }
+.view[data-guide-dock=left] .guide-resize, .view[data-guide-dock=right] .guide-resize { cursor: ew-resize; }
+.view[data-guide-preview] > .stage { outline: 2px dashed var(--accent); outline-offset: -5px; }
+@media (max-width: 1100px) { .ex-divider { display: none; } }
+@media (max-width: 720px) {
+  body.ex .view.has-guide, body.ex .view.has-guide[data-guide-dock] { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(260px, 1fr) var(--guide-extent, 270px); min-height: 90vh; }
+  body.ex .view.has-guide[data-guide-dock] > .stage { grid-column: 1; grid-row: 1; }
+  body.ex .view.has-guide[data-guide-dock] > .caption { grid-column: 1; grid-row: 2; }
+}
+
+body.ex .view.has-guide > #caption, body.ex .view.has-guide:fullscreen > #caption { max-height: none; }
+body.ex .cap-curve-wrap { height: 146px; flex-shrink: 0; }

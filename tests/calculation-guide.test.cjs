@@ -3,7 +3,7 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), path = re
 const root = path.join(__dirname, '..'), ctx = { console, Math, performance: { now: () => 0 }, setTimeout, window: { addEventListener() {} } };
 ctx.window.window = ctx.window; vm.createContext(ctx);
 for (const m of fs.readFileSync(path.join(root, 'examples.html'), 'utf8').matchAll(/<script src="([^"]+)"/g)) {
-  if (/\/(view|student|teacher|app)\.js$/.test(m[1])) continue;
+  if (/\/(view|student|teacher|app|layout)\.js$/.test(m[1])) continue;
   vm.runInContext(fs.readFileSync(path.join(root, m[1]), 'utf8'), ctx);
 }
 const { EX: X, V, VA } = ctx.window.EL;
@@ -32,9 +32,14 @@ for (const pb of X.BUILTIN) {
           const rhs = 3 * s * (s ** 5 + 10 * s ** 4 + 4 * s ** 3 + 8 * s ** 2 - 64 * s + 32);
           assert.ok(Math.abs(lhs - rhs) < 1e-10, 'squared equation expansion');
         }
+      } else if (p.special.kind === 'triangleMedianFull') {
+        assert.equal(p.roots.length, 2); assert.ok(Math.abs(p.roots[0] - 2 / 3) < 1e-10); assert.ok(Math.abs(p.roots[1] - 0.856478903202023) < 1e-10);
+        assert.ok(p.slope(0.2) < 0 && p.slope(0.8) > 0 && p.slope(0.95) < 0);
+      } else if (p.special.kind === 'trianglePN') {
+        assert.equal(p.roots.length, 1); assert.ok(Math.abs(p.roots[0] - 0.9698432381197097) < 1e-10); assert.ok(p.slope(0.9) > 0 && p.slope(0.99) < 0);
       } else { assert.equal(p.special.kind, 'tetra'); assert.equal(p.roots.length, 0); for (let s = 0.01; s < 1; s += 0.01) assert.ok(p.slope(s) < 0); }
       const reverse = JSON.parse(JSON.stringify(pb)); Object.keys(reverse.charges).forEach(k => reverse.charges[k] *= -1);
-      const reversed = X.solve(reverse).ans.find(x => x.q.t === 'trend');
+      const reversed = X.solve(reverse).ans.find(x => x.q.t === 'trend' && x.q.a === o.q.a && x.q.b === o.q.b);
       assert.ok(Math.abs(reversed.pathProof.slope(0.37) + p.slope(0.37)) < 1e-10);
       checkTex(X.pathSteps(pb, sol.R, o, 0.3));
     } else if (!o.plan || sol.R.analytic) { const steps = X.calculationSteps(pb, sol.R, o); assert.ok(steps.length >= 2); checkTex(steps); calculations++; }
@@ -52,7 +57,7 @@ const sources = resolved.sources.map(x => ({ ...x, p: transform(x.p) })), field 
 const moved = { sources, pts: { G: { p: transform(resolved.pts.G.p) }, M: { p: transform(resolved.pts.M.p) } }, field: p => field.sample(p) };
 const proof = X.pathAnalysis(original, moved, { a: 'G', b: 'M' });
 assert.equal(proof.special.kind, 'median'); assert.ok(Math.abs(proof.roots[0] - 0.5694367096060693) < 1e-9);
-const originalProof = X.solve(original).ans.find(o => o.q.t === 'trend').pathProof;
+const originalProof = X.pathAnalysis(original, resolved, { a: 'G', b: 'M' });
 assert.ok(Math.abs(proof.slope(0.3) * 2 - originalProof.slope(0.3)) < 1e-10);
 // Custom symmetric path: root exactly on the sampling grid must not disappear.
 const free = { kind: 'free', model: 1, srcs: [{ label: 'A', p: [0, 1, 0], q: 1 }], bgs: [], pts: { P: { def: { t: 'xyz', p: [-1, 0, 0] } }, Q: { def: { t: 'xyz', p: [1, 0, 0] } } }, qs: [{ t: 'trend', a: 'P', b: 'Q' }] };

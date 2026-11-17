@@ -96,32 +96,99 @@
     for (const n of ['aP', 'aC', 'aS']) gl.disableVertexAttribArray(sp.a[n]);
   };
 
+  R.getLabelKey = function (L, index) {
+    if (L.id != null) return String(L.id);
+    const stem = (L.cls || '') + ':' + String(L.text), labels = this.scene.labels || [];
+    let duplicate = 0;
+    for (let i = 0; i < index; i++) if ((labels[i].cls || '') + ':' + String(labels[i].text) === stem) duplicate++;
+    return stem + (duplicate ? ':' + duplicate : '');
+  };
+  R.isLabelVisible = function (L, index) {
+    const state = this.labelPreferences.get(this.getLabelKey(L, index));
+    return state && state.visible != null ? state.visible : !L.hidden;
+  };
+  R.setLabelVisible = function (key, visible) {
+    this.labelPreferences.set(key, Object.assign({}, this.labelPreferences.get(key), { visible: !!visible }));
+    this.draw();
+  };
+  R.resetLabelOffsets = function (key) {
+    for (const [id, state] of this.labelPreferences) if (key == null || key === id) { delete state.dx; delete state.dy; }
+    this.draw();
+  };
+  R.resetLabels = function () { this.labelPreferences.clear(); this.draw(); };
+
+  R.labelMenu = function (event, key) {
+    event.preventDefault(); event.stopPropagation();
+    const en = document.documentElement.lang.startsWith('en');
+    if (!this._labelMenu) {
+      this._labelMenu = document.createElement('div');
+      this._labelMenu.className = 'annotation-menu';
+      this.overlay.parentElement.append(this._labelMenu);
+      document.addEventListener('pointerdown', e => { if (!this._labelMenu.contains(e.target)) this._labelMenu.hidden = true; });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') this._labelMenu.hidden = true; });
+    }
+    const menu = this._labelMenu;
+    menu.replaceChildren();
+    const add = (text, action) => {
+      const button = document.createElement('button'); button.type = 'button'; button.textContent = text;
+      button.addEventListener('click', () => { action(); menu.hidden = true; }); menu.append(button);
+    };
+    if (key != null) {
+      add(en ? 'Hide this label' : '隐藏此标注', () => this.setLabelVisible(key, false));
+      add(en ? 'Reset this label position' : '重置此标注位置', () => this.resetLabelOffsets(key));
+    }
+    add(en ? 'Restore default labels' : '恢复默认标注', () => this.resetLabels());
+    menu.dataset.theme = EL.C.lbl; menu.hidden = false;
+    menu.style.left = Math.max(8, Math.min(event.clientX, innerWidth - menu.offsetWidth - 8)) + 'px';
+    menu.style.top = Math.max(8, Math.min(event.clientY, innerHeight - menu.offsetHeight - 8)) + 'px';
+  };
+
+  R.bindLabel = function (span) {
+    let press = null, timer = null;
+    const end = () => { clearTimeout(timer); timer = null; press = null; span.classList.remove('dragging'); this.labelDrag = null; };
+    span.addEventListener('contextmenu', e => this.labelMenu(e, span.dataset.labelKey));
+    span.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault(); e.stopPropagation();
+      const state = this.labelPreferences.get(span.dataset.labelKey) || {};
+      press = { key: span.dataset.labelKey, x: e.clientX, y: e.clientY, dx: state.dx == null ? span._dx : state.dx, dy: state.dy == null ? span._dy : state.dy, active: false };
+      span.setPointerCapture(e.pointerId);
+      timer = setTimeout(() => { if (press) { press.active = true; this.labelDrag = press.key; span.classList.add('dragging'); } }, 450);
+    });
+    span.addEventListener('pointermove', e => {
+      if (!press) return;
+      if (!press.active) { if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > 7) end(); return; }
+      e.preventDefault(); e.stopPropagation();
+      let dx = press.dx + e.clientX - press.x, dy = press.dy + e.clientY - press.y;
+      const distance = Math.hypot(dx, dy), limit = 110;
+      if (distance > limit) { dx *= limit / distance; dy *= limit / distance; }
+      this.labelPreferences.set(press.key, Object.assign({}, this.labelPreferences.get(press.key), { dx, dy }));
+      this.draw();
+    });
+    span.addEventListener('pointerup', end); span.addEventListener('pointercancel', end); span.addEventListener('lostpointercapture', end);
+  };
+
   R.drawLabels = function () {
-    const labs = this.scene.labels || [], pool = this.labelPool, ov = this.overlay, placed = [];
-    while (pool.length < labs.length) { const s = document.createElement('span'); ov.append(s); pool.push(s); }
+    const labs = this.scene.labels || [], pool = this.labelPool, ov = this.overlay;
+    while (pool.length < labs.length) { const s = document.createElement('span'); this.bindLabel(s); ov.append(s); pool.push(s); }
     pool.forEach((s, i) => {
       const L = labs[i];
-      if (!L || L.text == null || L.text === '') { s.style.display = 'none'; return; }
+      if (!L || L.text == null || L.text === '' || !this.isLabelVisible(L, i)) { s.style.display = 'none'; return; }
       const q = this.cam.toScreen(L.p);
       if (!q || q[2] > 1 || q[2] < -1 || q[0] < 0 || q[0] > this.cam.w || q[1] < 0 || q[1] > this.cam.h) { s.style.display = 'none'; return; }
       const cls = 'lbl ' + (L.cls || '');
-      if (s.className !== cls) { s.className = cls; s._w = 0; }
+      if (s.className.replace(' dragging', '') !== cls) { s.className = cls; s._w = 0; }
       if (s._t !== L.text) { s._t = L.text; s.innerHTML = EL.U.rich(L.text); s._w = 0; }
+      const key = this.getLabelKey(L, i), state = this.labelPreferences.get(key) || {};
+      s.dataset.labelKey = key;
+      s.title = document.documentElement.lang.startsWith('en') ? 'Hold to move; right-click for label settings' : '长按拖动；右键设置标注';
       s.style.display = '';
-      let x = q[0] + 7, y = q[1] - 18;
-      // Include point and component-field labels in collision avoidance, not only angles.
       if (!s._w) { s._w = s.offsetWidth || 8 * String(L.text).length; s._h = s.offsetHeight || 16; }
-      const w = s._w, hh = s._h, ox = x, oy = y, gap = 4;
-      let found = false;
-      for (let ring = 0; ring <= 16 && !found; ring++) {
-        const offsets = ring === 0 ? [[0, 0]] : [[0, -ring * (hh + gap)], [0, ring * (hh + gap)], [-ring * 18 - w, 0], [ring * 18, 0]];
-        for (const [dx, dy] of offsets) {
-          const cx = Math.max(4, Math.min(ox + dx, this.cam.w - w - 4)), cy = Math.max(4, Math.min(oy + dy, this.cam.h - hh - 4));
-          if (!placed.some(r => cx < r.x + r.w + gap && r.x < cx + w + gap && cy < r.y + r.h + gap && r.y < cy + hh + gap)) { x = cx; y = cy; found = true; break; }
-        }
-      }
-      placed.push({ x, y, w, h: hh });
-      s._dx = x - ox; s._dy = y - oy;
+      // Fixed offsets follow the anchor continuously when the camera rotates.
+      const x = Math.max(3, Math.min(q[0] + 7 + (state.dx == null ? L.offset?.[0] || 0 : state.dx), this.cam.w - s._w - 3));
+      const y = Math.max(3, Math.min(q[1] - 18 + (state.dy == null ? L.offset?.[1] || 0 : state.dy), this.cam.h - s._h - 3));
+      s._x = x; s._y = y;
+      s._dx = x - q[0] - 7; s._dy = y - q[1] + 18;
       s.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
     });
   };
@@ -138,8 +205,8 @@
     g.font = (13 * dpr) + 'px "Times New Roman", "Microsoft YaHei", serif';
     g.fillStyle = EL.C.lbl === 'dark' ? '#E6EDF6' : '#1d2b3a';
     (this.scene.labels || []).forEach((L, i) => {
-      const q = this.cam.toScreen(L.p), label = this.labelPool[i], dx = label?._dx || 0, dy = label?._dy || 0;
-      if (q && L.text != null) g.fillText(EL.U.plain(L.text), (q[0] + 7 + dx) * dpr, (q[1] - 4 + dy) * dpr);
+      const label = this.labelPool[i];
+      if (label && label.style.display !== 'none' && L.text != null) g.fillText(EL.U.plain(L.text), label._x * dpr, (label._y + label._h * 0.85) * dpr);
     });
     // The export watermark is painted into the pixels; the model is never rescaled.
     const pad = 10 * dpr, size = Math.max(11, Math.min(18, this.cam.w * 0.025)) * dpr;

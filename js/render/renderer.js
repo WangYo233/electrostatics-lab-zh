@@ -18,7 +18,7 @@
     this.spBuf = { p: gl.createBuffer(), c: gl.createBuffer(), s: gl.createBuffer() };
     this.cache = new Map();
     this.sphere = G.unitSphere(); this.cone = G.unitCone();
-    this.scene = {}; this.labelPool = [];
+    this.scene = {}; this.labelPool = []; this.labelPreferences = new Map(); this.labelDrag = null;
     this.cam = new EL.Camera();
     this.flow = new EL.Flow();
     this.fx = { paused: false, glow: true, density: 1, speed: 1, map: 'sqrt', reveal: true };

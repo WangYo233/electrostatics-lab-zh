@@ -5,7 +5,7 @@ const ctx = { console, Math, performance: { now: () => 0 }, setTimeout, window: 
 ctx.window.window = ctx.window;
 vm.createContext(ctx);
 for (const m of fs.readFileSync(path.join(root, 'examples.html'), 'utf8').matchAll(/<script src="([^"]+)"/g)) {
-  if (/\/(view|student|teacher|app)\.js$/.test(m[1])) continue;
+  if (/\/(view|student|teacher|app|layout)\.js$/.test(m[1])) continue;
   vm.runInContext(fs.readFileSync(path.join(root, m[1]), 'utf8'), ctx, { filename: m[1] });
 }
 const { EX: X, VA, V, MH, C } = ctx.window.EL;

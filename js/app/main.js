@@ -334,6 +334,7 @@
     A.init(m);
     A.applyStage(0, true);
     try { A.r = new EL.Renderer(U.$('#gl'), U.$('#labels')); } catch (e) { U.$('#stage').replaceChildren(h('p.err', null, '无法初始化 WebGL（' + e.message + '）。请改用支持 WebGL 的现代浏览器。')); return; }
+    U.$('#gl').addEventListener('contextmenu', event => A.r.labelMenu(event, null));
     const cam = A.r.cam;
     cam.attach(U.$('#gl'), {
       change: () => A.r.draw(),

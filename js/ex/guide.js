@@ -55,6 +55,11 @@
       const opposite = active.find(g => close(g.h / length, 1 / 3) && close(g.b2 / length ** 2, 8 / 9));
       if (medianA && medianB && close(medianB.q, 2 * medianA.q)) special = { kind: 'median', q: medianA.q };
       if (vertex && opposite && close(vertex.q, -opposite.q)) special = { kind: 'tetra', q: opposite.q };
+      const startSource = active.find(g => close(g.h / length, 0) && close(g.b2 / length ** 2, 0));
+      const endPair = active.find(g => close(g.h / length, 1) && close(g.b2 / length ** 2, 1 / 3));
+      const third = active.find(g => close(g.h / length, 2 / 3) && close(g.b2 / length ** 2, 8 / 9));
+      if (startSource && endPair && close(endPair.q, 2 * startSource.q)) special = { kind: 'triangleMedianFull', q: startSource.q };
+      if (third && endPair && close(endPair.q, 2 * third.q)) special = { kind: 'trianglePN', q: third.q };
     }
     return { a, b, d, t, length, sources, groups, active, at, slope, roots, brackets, boundaries, intervals, special };
   };
@@ -74,9 +79,12 @@
   X.pathSteps = function (pb, model, answer, s) {
     const p = answer.pathProof || (answer.pathProof = X.pathAnalysis(pb, model, answer.q));
     const q = answer.q, f = p.at(s), point = V.lerp(p.a, p.b, s), derivative = p.slope(s);
-    let geometry = R`\ell=|${q.a}${q.b}|=${F(p.length)},\quad s=\frac{|${q.a}X|}{\ell},\quad0\le s\le1\qquad\vec X(s)=${vec(p.a)}+s${vec(p.d)}\qquad\hat t=\frac{\vec r_{${q.b}}-\vec r_{${q.a}}}{\ell}`;
+    const domain = model.sources.some(x => V.dist(x.p, p.a) < 1e-9) ? R`0<s\le1` : model.sources.some(x => V.dist(x.p, p.b) < 1e-9) ? R`0\le s<1` : R`0\le s\le1`;
+    let geometry = R`\ell=|${q.a}${q.b}|=${F(p.length)},\quad s=\frac{|${q.a}X|}{\ell},\quad${domain}\qquad\vec X(s)=${vec(p.a)}+s${vec(p.d)}\qquad\hat t=\frac{\vec r_{${q.b}}-\vec r_{${q.a}}}{\ell}`;
     if (p.special?.kind === 'median' && pb.tpl === 'tri' && q.a === 'G' && q.b === 'M') geometry = R`h=\sqrt{a^2-(a/2)^2}=\frac{\sqrt3a}{2},\quad\ell=GM=\frac h3=\frac{\sqrt3a}{6}\qquad ` + geometry;
     if (p.special?.kind === 'tetra' && pb.tpl === 'tetra' && q.a === 'P' && q.b === 'C') geometry = R`PA=PB=\frac a2,\quad PC=PD=\sqrt{a^2-(a/2)^2}=\frac{\sqrt3a}{2}=\ell\qquad ` + geometry;
+    if (p.special?.kind === 'triangleMedianFull') geometry = R`AM=\frac{\sqrt3a}{2}=\ell,\quad s=\frac{AX}{AM},\quad G:\ s=\frac23,\quad 0<s\le1\qquad ` + geometry;
+    if (p.special?.kind === 'trianglePN') geometry = R`AN=BN,\quad PN=\frac{\sqrt3a}{2}=\ell,\quad AN=BN=\frac a2,\quad CN=\frac{\sqrt3a}{2}\qquad ` + geometry;
     const steps = [{ id: 'pathGeometry', title: L('建立路径参数与几何距离', 'Define the path parameter and distances'),
       text: L('令 s 为起点到 X 的距离与路径总长之比。先用已知坐标或几何关系确定路径长度和方向；后续所有场强和电势都在同一个 X(s) 处计算。长度采用题目的单位。', 'Let s be the fraction of the path from the start to X. Determine the path length and direction from the known geometry. All subsequent fields and potentials are evaluated at the same X(s), in the problem’s units.'), tex: geometry }];
     if (!model.analytic) {
@@ -91,6 +99,8 @@
     let potential = model.analytic ? X.pathLaw(pb) : R`\varphi(s)=\sum_i\frac{kq_i}{r_i(s)}=\sum_i\frac{kq_i}{\sqrt{(s\ell-h_i)^2+b_i^2}}`;
     if (p.special?.kind === 'median') potential += R`\qquad\varphi(s)=\frac{kq}{\ell}\left(\frac1{s+2}+\frac2{\sqrt{(s-1)^2+3}}\right),\quad q=${F(p.special.q)}`;
     if (p.special?.kind === 'tetra') potential += R`\qquad\varphi(s)=\frac{kq}{\ell}\left(\frac1{\sqrt{(s-1/3)^2+8/9}}-\frac1{1-s}\right),\quad q=${F(p.special.q)}`;
+    if (p.special?.kind === 'triangleMedianFull') potential += R`\qquad\varphi(s)=\frac{kq}{\ell}\left(\frac1s+\frac2{\sqrt{(1-s)^2+1/3}}\right),\quad q=${F(p.special.q)},\quad s\to0^+:\quad\varphi\to+\infty\ (q>0)`;
+    if (p.special?.kind === 'trianglePN') potential += R`\qquad\varphi(s)=\frac{kq}{\ell}\left(\frac2{\sqrt{(1-s)^2+1/3}}+\frac1{\sqrt{(s-2/3)^2+8/9}}\right),\quad q=${F(p.special.q)}`;
     const cancelled = p.groups.filter(g => close(g.q, 0)).map(g => g.labels.join(', '));
     steps.push({ id: 'pathPotential', title: L('先写出电势函数，再代入计算', 'Derive the potential function before evaluating it'),
       text: L('将上一步的距离代入电势公式，保留电荷正负号；计算采用归一化单位 k=1。', 'Substitute the derived distances into the potential law, retaining charge signs. Numerical values use normalized units k=1.') + (cancelled.length ? L('等距且总电荷为零的组相互抵消：', 'Equal-distance groups with zero total charge cancel: ') + cancelled.join('; ') + '。' : ''),
@@ -100,6 +110,8 @@
     if (!model.analytic) differential += R`\qquad E_{\parallel}=\sum_i\frac{kq_i(s\ell-h_i)}{r_i(s)^3},\quad\frac{d\varphi}{ds}=-k\ell\sum_i\frac{q_i(s\ell-h_i)}{[(s\ell-h_i)^2+b_i^2]^{3/2}}`;
     if (p.special?.kind === 'median') differential += R`\qquad\frac{\ell}{kq}\frac{d\varphi}{ds}=\frac{2(1-s)}{[(1-s)^2+3]^{3/2}}-\frac1{(s+2)^2}`;
     if (p.special?.kind === 'tetra') differential += R`\qquad\frac{\ell}{kq}\frac{d\varphi}{ds}=-\frac{s-1/3}{[(s-1/3)^2+8/9]^{3/2}}-\frac1{(1-s)^2}`;
+    if (p.special?.kind === 'triangleMedianFull') differential += R`\qquad\frac{\ell}{kq}\frac{d\varphi}{ds}=-\frac1{s^2}+\frac{2(1-s)}{[(1-s)^2+1/3]^{3/2}}`;
+    if (p.special?.kind === 'trianglePN') differential += R`\qquad\frac{\ell}{kq}\frac{d\varphi}{ds}=\frac{2(1-s)}{[(1-s)^2+1/3]^{3/2}}-\frac{s-2/3}{[(s-2/3)^2+8/9]^{3/2}}`;
     steps.push({ id: 'pathDerivative', title: L('由距离求沿路径分量及电势导数', 'Calculate the tangential field and potential derivative'),
       text: L('先计算各分场强在路径方向上的投影，再求和。这里导数是对无量纲参数 s 求导，因此要乘路径长度 ℓ；夹角只作为计算后的核对读数。', 'Project each component field onto the path, then add. Differentiation with respect to the dimensionless s introduces the path length ℓ. The angle is a check after the calculation.'),
       tex: differential + R`\qquad s=${F(s)},\quad E_{\parallel}\approx ${EL.U.fmt(-derivative / p.length, 6)},\quad\frac{d\varphi}{ds}\approx ${EL.U.fmt(derivative, 6)}`,
@@ -114,6 +126,11 @@
       critical += L('本题不需要猜测角度：s≥1/3 时上式两项均非正；s<1/3 时正项的上界小于负项的绝对值，所以括号中的导数因子始终为负。电荷整体反号时结论反向。', 'No angle estimate is needed: for s≥1/3 both terms are nonpositive. For s<1/3 the positive term is smaller than the negative term in magnitude, so the derivative factor stays negative. Reversing all charges reverses the trend.');
       criticalTex += R`\qquad0\le s<\frac13:\quad\frac{1/3-s}{[(s-1/3)^2+8/9]^{3/2}}\le\frac{1/3}{(8/9)^{3/2}}<1\le\frac1{(1-s)^2}`;
     }
+    if (p.special?.kind === 'triangleMedianFull') {
+      critical += L('完整中线包含中心 G 和 G→M 段内的另一个驻点。把 t=GX/GM=3s−2 代入原中线方程，可得 s=2/3 与 s≈0.856479；按下表分别检查三个区间，不能把整段误判为先升后降。A 处为正点源奇点，s=0 不属于电势定义域。', 'The full median contains the center G and another stationary point between G and M. Substituting t=GX/GM=3s−2 gives s=2/3 and s≈0.856479. Check all three intervals in the table. The positive point source at A excludes s=0 from the potential domain.');
+      criticalTex += R`\qquad s_G=\frac23,\quad t=3s-2,\quad s_*=\frac{2+0.5694367096}{3}\approx0.8564789032`;
+    }
+    if (p.special?.kind === 'trianglePN') critical += L('N 是 AB 中点，两电荷的距离贡献相同，先合并 A、B 两项，再保留 C 项。求导后在 0<s<1 内寻找变号根，并检查其两侧导数；此处零的是沿 PN 的分量，不应仅由曲线极值断言三维合场强为零。', 'N is the midpoint of AB, so combine the equal-distance A and B terms before adding C. Solve for the derivative sign change in 0<s<1 and check both sides. A stationary potential here sets the PN component to zero; it does not by itself prove that the full three-dimensional field vanishes.');
     steps.push({ id: 'pathCritical', title: L('解驻点方程，并检查分界点', 'Solve for stationary points and check boundaries'), text: critical, tex: criticalTex,
       rows: [[L('左界', 'Left bracket'), L('右界', 'Right bracket'), 's_*', '|dφ/ds|'], ...(p.brackets.length ? p.brackets.map(b => [EL.U.fmt(b.lo, 6), EL.U.fmt(b.hi, 6), EL.U.fmt(b.s, 7), EL.U.fmt(Math.abs(p.slope(b.s)), 3)]) : [[L('无内部变号根', 'No interior sign-change root'), '—', '—', '—']])] });
     steps.push({ id: 'pathConclusion', title: L('由导数符号得到分段变化，再核对曲线', 'Infer the trend from derivative signs, then check the curve'),
