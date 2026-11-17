@@ -81,7 +81,6 @@
 /* Label readability: keep every model annotation legible over geometry and both board themes. */
 .labels .lbl {
   display: inline-block;
-  max-width: min(220px, calc(100% - 10px));
   padding: 1px 5px;
   border-radius: 5px;
   border: 1px solid rgba(255,255,255,.28);
@@ -104,3 +103,7 @@
 .labels[data-theme="dark"] .lbl.neg { color: #bfe3ff; }
 .labels[data-theme="light"] .lbl.pos { color: #8f3800; }
 .labels[data-theme="light"] .lbl.neg { color: #004d78; }
+
+.labels[data-theme="dark"] .lbl { background: #0b1220; border-color: #58677d; text-shadow: none; }
+.labels[data-theme="light"] .lbl { background: #fff; border-color: #8b9bb0; text-shadow: none; }
+.labels .lbl.axis { opacity: 1; }

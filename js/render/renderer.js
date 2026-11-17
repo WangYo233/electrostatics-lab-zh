@@ -27,7 +27,7 @@
     const loop = now => {
       const dt = Math.min(0.05, (now - this.last) / 1000);
       this.last = now; this.t += dt;
-      const busy = (this.flow.n && !this.fx.paused) || (this.fx.glow && (this.scene.glows || []).length) || this.cam.tw || this.reveal < 1;
+      const busy = (this.flow.n && !this.fx.paused) || (this.fx.glow && (this.scene.glows || []).length) || this.cam.tw || this.labelsMoving || this.reveal < 1;
       if (busy && !document.hidden) {
         if (this.reveal < 1) this.reveal = Math.min(1, (now - this.revealT0) / 900);
         if (this.flow.n) this.flow.step(this.fx.paused ? 0 : dt, this.fx.speed, EL.C.flow);

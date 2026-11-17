@@ -113,9 +113,10 @@
   };
   R.resetLabelOffsets = function (key) {
     for (const [id, state] of this.labelPreferences) if (key == null || key === id) { delete state.dx; delete state.dy; }
+    for (const s of this.labelPool || []) if (key == null || s.dataset.labelKey === key) s._autoKey = null;
     this.draw();
   };
-  R.resetLabels = function () { this.labelPreferences.clear(); this.draw(); };
+  R.resetLabels = function () { this.labelPreferences.clear(); for (const s of this.labelPool || []) s._autoKey = null; this.draw(); };
 
   R.labelMenu = function (event, key) {
     event.preventDefault(); event.stopPropagation();
@@ -169,11 +170,30 @@
   };
 
   R.drawLabels = function () {
-    const labs = this.scene.labels || [], pool = this.labelPool, ov = this.overlay;
+    const labs = this.scene.labels || [], pool = this.labelPool, ov = this.overlay, placed = [], named = [];
+    this.labelsMoving = false;
+    const area = (a, b) => Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0])) * Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1]));
+    // Solid objects and view controls are obstacles; surfaces/lines stay behind opaque label plates.
+    const obstacles = (this.scene.spheres || []).map(o => {
+      const q = this.cam.toScreen(o.p);
+      if (!q || q[2] < -1 || q[2] > 1) return null;
+      const side = V.norm(V.cross(this.cam.viewDir(), Math.abs(this.cam.viewDir()[2]) > 0.95 ? [0, 1, 0] : [0, 0, 1]));
+      const e = this.cam.toScreen(V.add(o.p, V.mul(side, o.r)));
+      const r = e ? Math.max(3, Math.hypot(e[0] - q[0], e[1] - q[1])) : 3;
+      return [q[0] - r, q[1] - r, q[0] + r, q[1] + r];
+    }).filter(Boolean);
+    const rect = ov.getBoundingClientRect();
+    ov.parentElement.querySelectorAll('.hud,.tools,.legend,.stagebar').forEach(el => {
+      const b = el.getBoundingClientRect();
+      if (b.width && b.height && getComputedStyle(el).visibility !== 'hidden') obstacles.push([b.left - rect.left, b.top - rect.top, b.right - rect.left, b.bottom - rect.top]);
+    });
     while (pool.length < labs.length) { const s = document.createElement('span'); this.bindLabel(s); ov.append(s); pool.push(s); }
     pool.forEach((s, i) => {
       const L = labs[i];
       if (!L || L.text == null || L.text === '' || !this.isLabelVisible(L, i)) { s.style.display = 'none'; return; }
+      // A probe and a construction point can have the same name at the same position.
+      if (named.some(o => o.text === L.text && V.dist(o.p, L.p) < 1e-6)) { s.style.display = 'none'; return; }
+      named.push(L);
       const q = this.cam.toScreen(L.p);
       if (!q || q[2] > 1 || q[2] < -1 || q[0] < 0 || q[0] > this.cam.w || q[1] < 0 || q[1] > this.cam.h) { s.style.display = 'none'; return; }
       const cls = 'lbl ' + (L.cls || '');
@@ -184,9 +204,29 @@
       s.title = document.documentElement.lang.startsWith('en') ? 'Hold to move; right-click for label settings' : '长按拖动；右键设置标注';
       s.style.display = '';
       if (!s._w) { s._w = s.offsetWidth || 8 * String(L.text).length; s._h = s.offsetHeight || 16; }
-      // Fixed offsets follow the anchor continuously when the camera rotates.
-      const x = Math.max(3, Math.min(q[0] + 7 + (state.dx == null ? L.offset?.[0] || 0 : state.dx), this.cam.w - s._w - 3));
-      const y = Math.max(3, Math.min(q[1] - 18 + (state.dy == null ? L.offset?.[1] || 0 : state.dy), this.cam.h - s._h - 3));
+      const manual = state.dx != null || state.dy != null;
+      let dx = state.dx == null ? L.offset?.[0] || 0 : state.dx, dy = state.dy == null ? L.offset?.[1] || 0 : state.dy;
+      const box = (a, b) => {
+        const x = Math.max(3, Math.min(q[0] + 7 + a, this.cam.w - s._w - 3)), y = Math.max(3, Math.min(q[1] - 18 + b, this.cam.h - s._h - 3));
+        return [x, y, x + s._w + 3, y + s._h + 3];
+      };
+      if (!manual) {
+        const fresh = s._autoKey !== key;
+        if (fresh) { s._autoKey = key; s._autoDx = dx; s._autoDy = dy; }
+        const previous = [s._autoDx, s._autoDy];
+        const candidates = [previous, [dx, dy]];
+        for (const radius of [24, 48, 72]) for (let j = 0; j < 12; j++) candidates.push([dx + radius * Math.cos(j * Math.PI / 6), dy + radius * Math.sin(j * Math.PI / 6)]);
+        const score = v => { const b = box(...v); return 100 * placed.reduce((n, p) => n + area(b, p), 0) + 20 * obstacles.reduce((n, p) => n + area(b, p), 0) + 0.03 * ((v[0] - dx) ** 2 + (v[1] - dy) ** 2) + 0.15 * ((v[0] - previous[0]) ** 2 + (v[1] - previous[1]) ** 2); };
+        let best = previous, cost = score(best);
+        for (const v of candidates) { const n = score(v); if (n + 1 < cost) { best = v; cost = n; } }
+        const distance = Math.hypot(best[0] - previous[0], best[1] - previous[1]);
+        const k = fresh || distance < 0.5 ? 1 : Math.min(1, 2.5 / distance);
+        dx = previous[0] + (best[0] - previous[0]) * k; dy = previous[1] + (best[1] - previous[1]) * k;
+        s._autoDx = dx; s._autoDy = dy;
+        if (k < 1) this.labelsMoving = true;
+      }
+      const b = box(dx, dy), x = b[0], y = b[1];
+      placed.push(b);
       s._x = x; s._y = y;
       s._dx = x - q[0] - 7; s._dy = y - q[1] + 18;
       s.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
@@ -206,7 +246,13 @@
     g.fillStyle = EL.C.lbl === 'dark' ? '#E6EDF6' : '#1d2b3a';
     (this.scene.labels || []).forEach((L, i) => {
       const label = this.labelPool[i];
-      if (label && label.style.display !== 'none' && L.text != null) g.fillText(EL.U.plain(L.text), label._x * dpr, (label._y + label._h * 0.85) * dpr);
+      if (!label || label.style.display === 'none' || L.text == null) return;
+      const style = getComputedStyle(label), x = label._x * dpr, y = label._y * dpr, w = label._w * dpr, h = label._h * dpr;
+      g.fillStyle = style.backgroundColor; g.fillRect(x, y, w, h);
+      g.strokeStyle = style.borderColor; g.lineWidth = dpr; g.strokeRect(x, y, w, h);
+      g.font = style.fontWeight + ' ' + (parseFloat(style.fontSize) * dpr) + 'px ' + style.fontFamily;
+      g.fillStyle = style.color; g.textBaseline = 'middle';
+      g.fillText(EL.U.plain(L.text), x + (parseFloat(style.paddingLeft) + 1) * dpr, y + h / 2);
     });
     // The export watermark is painted into the pixels; the model is never rescaled.
     const pad = 10 * dpr, size = Math.max(11, Math.min(18, this.cam.w * 0.025)) * dpr;
