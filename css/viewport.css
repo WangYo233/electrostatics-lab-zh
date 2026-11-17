@@ -77,3 +77,30 @@
 .annotation-menu[hidden] { display: none; }
 .annotation-menu button { padding: 8px 12px; color: inherit; background: transparent; border: 1px solid transparent; text-align: left; border-radius: 5px; }
 .annotation-menu button:hover, .annotation-menu button:focus-visible { color: inherit; background: #6589b133; border-color: #7898ba; }
+
+/* Label readability: keep every model annotation legible over geometry and both board themes. */
+.labels .lbl {
+  display: inline-block;
+  max-width: min(220px, calc(100% - 10px));
+  padding: 1px 5px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,.28);
+  background: rgba(11,18,32,.78);
+  box-shadow: 0 2px 8px rgba(0,0,0,.28);
+  text-shadow: 0 1px 2px rgba(0,0,0,.9);
+  line-height: 1.25;
+}
+.labels[data-theme="light"] .lbl {
+  border-color: rgba(42,56,74,.38);
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 2px 8px rgba(24,35,50,.18);
+  text-shadow: 0 1px 1px rgba(255,255,255,.95);
+}
+.labels[data-theme="dark"] .lbl.axis,
+.labels[data-theme="dark"] .lbl.zero { color: #f1f5fb; }
+.labels[data-theme="light"] .lbl.axis,
+.labels[data-theme="light"] .lbl.zero { color: #1e2938; }
+.labels[data-theme="dark"] .lbl.pos { color: #ffd09d; }
+.labels[data-theme="dark"] .lbl.neg { color: #bfe3ff; }
+.labels[data-theme="light"] .lbl.pos { color: #8f3800; }
+.labels[data-theme="light"] .lbl.neg { color: #004d78; }
