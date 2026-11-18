@@ -8,7 +8,7 @@
 // 自主探究、解析场模型与圆盘电荷的长度单位为 L，单位制与实验室一致（k = 1）
 (function (EL) {
   const V = EL.V, U = EL.U, X = EL.EX;
-  const fmtP = p => '(' + p.map(x => U.fmt(x, 3)).join(', ') + ')';
+  const fmtP = p => '(' + p.map(x => EL.VA.cell(x)).join(', ') + ')';
 
   // ---- 模型编号与名称（与首页、实验室的分类和顺序一致）----
   X.TPL_MODEL = { pair: 1, tetra: 4, cube: 6, octa: 5, tri: 7, square: 7 };
@@ -147,7 +147,7 @@
 
   // ---- 题干 ----
   const BG_SIZE = s => {
-    const L = x => U.fmt(x, 3) + ' L', T = EL.GEO.TYPES[s.type].name;
+    const L = x => EL.VA.cell(x) + ' L', T = EL.GEO.TYPES[s.type].name;
     switch (s.type) {
       case 'square': return '边长为 ' + L(s.w) + ' 的正方形（平行于 xy 平面）';
       case 'rect': return '长 ' + L(s.w) + '、宽 ' + L(s.l) + ' 的长方形（平行于 xy 平面）';
@@ -179,7 +179,7 @@
   };
   X.stemOf = function (pb, R) {
     const k = X.kindOf(pb);
-    if (k === 'field') return FIELD_STEM[pb.sub](pb.sp) + ptsStem(pb, R) + '计算时取 k = 1（即 ε₀ = 1/(4π)），ε 为相对介电常数，长度单位为 L；答案只写数值。';
+    if (k === 'field') return FIELD_STEM[pb.sub](pb.sp) + ptsStem(pb, R) + '计算时取 k = 1（即 ε₀ = 1/(4π)），ε 为相对介电常数，长度单位为 L；场强大小按上述单位表示；若题目询问方向，需同时描述方向。';
     if (k === 'disk') {
       const d = pb.disk, n = d.center ? d.N - 1 : d.N;
       return '在 xy 平面内半径 R = ' + U.fmt(d.R) + ' L、圆心为原点 O 的圆盘中放置 ' + d.N + ' 个点电荷：' +

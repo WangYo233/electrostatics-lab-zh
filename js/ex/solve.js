@@ -32,7 +32,7 @@
     if (kind === 'field') {
       const sub = EL.SUB08[pb.sub];
       R.field = p => { const r = sub.fn(pb.sp, p); return { V: r.V, E: r.E, ok: isFinite(r.V) && r.E.every(isFinite), region: r.region }; };
-      R.analytic = true;
+      R.analytic = true; R.sub = pb.sub;
     } else {
       const F = EL.Phys.pointField(sources, 1e-9);
       R.field = p => { const s = F.sample(p); return { V: s.V, E: s.E, ok: s.ok }; };
@@ -129,6 +129,42 @@
   };
   // 选择题的正确选项：场强题为大小，其余为答案本身
   X.rightOf = o => o.right != null ? o.right : o.q.t === 'E' ? o.mag : o.answer;
+  // Ask for direction only when geometry supplies a clear, signed description.
+  X.fieldDirection = function (R, q, field) {
+    if (!field || !field.every(Number.isFinite) || V.len(field) < 1e-9) return '';
+    const unit = V.norm(field), point = R.pts[q.at]?.p, names = R.named || [];
+    const along = (a, b) => {
+      const d = V.sub(b.p, a.p), length = V.len(d);
+      if (length < 1e-9) return '';
+      const c = V.dot(unit, d) / length;
+      if (Math.abs(c) < 1 - 1e-9) return '';
+      const from = c > 0 ? a.n : b.n, to = c > 0 ? b.n : a.n;
+      return false ? 'from ' + from + ' toward ' + to : '由 ' + from + ' 指向 ' + to;
+    };
+    if (R.analytic) { const text = X.anaDir(R.sub, point, field); if (text && !/unit vector|单位矢量/.test(text)) return text; }
+    if (point) for (const other of names) { const text = along({ n: q.at, p: point }, other); if (text) return text; }
+    for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) { const text = along(names[i], names[j]); if (text) return text; }
+    return '';
+  };
+  X.fieldChoices = function (R, o) {
+    if (!o.ok || o.q.t !== 'E') return;
+    const dir = X.fieldDirection(R, o.q, o.T), append = value => !dir || /^0(?:\s|$)/.test(value) ? value : value + (false ? ', directed ' : '，方向') + dir;
+    o.dir = dir; o.directionAsked = !!dir; o.answer = append(o.mag);
+    if (dir && !o.options) o.options = [o.mag];
+    if (o.options) {
+      o.options = o.options.map(append); o.right = append(o.mag);
+      (o.distractors || []).forEach(item => { item.v = append(item.v); });
+      if (dir) {
+        const reverse = X.fieldDirection(R, o.q, V.mul(o.T, -1));
+        const wrong = o.mag + '，方向' + reverse;
+        if (reverse && reverse !== dir && !o.options.includes(wrong)) {
+          if (o.options.length >= 4) { const index = o.options.findLastIndex(value => value !== o.right); const removed = o.options.splice(index, 1)[0]; o.distractors = (o.distractors || []).filter(item => item.v !== removed); }
+          o.options.push(wrong);
+          (o.distractors || (o.distractors = [])).push({ v: wrong, why: '场强大小正确，但方向与合场强相反。' });
+        }
+      }
+    }
+  };
   X.solve = function (pb) {
     const R = X.resolve(pb), ans = (pb.qs || []).map(q => {
       if (q.t === 'trend' && R.pts[q.a]?.p && R.pts[q.b]?.p) {
@@ -137,6 +173,8 @@
         if (!R.analytic && R.sources.some(source => { const s = V.dot(V.sub(source.p, a), d) / length2; return s > 1e-9 && s < 1 - 1e-9 && V.dist(source.p, V.addS(a, d, s)) < 1e-9; })) return { q, ok: false, err: '路径中途经过场源电荷，该处电势未定义。' };
       }
       const o = X.answer(pb, R, q);
+      if (X.exactAnswer) X.exactAnswer(pb, R, o);
+      X.fieldChoices(R, o);
       if (o.ok && q.t === 'trend') o.expl = X.pathSteps(pb, R, o, 0.3).map(st => ({ t: st.title + ': ' + st.text, tex: st.tex, rows: st.rows }));
       return o;
     });
@@ -145,6 +183,7 @@
 
   // ---- 文字：题干、问题、解析 ----
   X.stem = function (pb, R) {
+    if (pb.stem) return pb.stem;
     if (X.kindOf(pb) !== 'tpl') return X.stemOf(pb, R);
     // 电荷量相同的顶点合并叙述：“在 A、C 两点各放置一个电荷量为 −Q 的点电荷”
     const T = X.TEMPLATES[pb.tpl], by = new Map();
@@ -161,7 +200,7 @@
   };
   X.qText2 = function (q, pb) {
     switch (q.t) {
-      case 'E': return '求 ' + q.at + ' 点电场强度的大小和方向。';
+      case 'E': { const R = X.resolve(pb), E = R.pts[q.at] && R.field(R.pts[q.at].p).E; return '求 ' + q.at + ' 点电场强度的大小' + (X.fieldDirection(R, q, E) ? '和方向' : '') + '。'; }
       case 'Ezero': return q.at + ' 点的电场强度是否为零？';
       case 'V': return '求 ' + q.at + ' 点的电势。';
       case 'Vcmp': return '比较 ' + q.a + '、' + q.b + ' 两点电势的高低。';
@@ -184,11 +223,11 @@
       for (const s of o.plan) if (s.id !== 'list' && s.id !== 'group') L.push({ t: s.title + '：' + s.text, tex: s.tex, rows: s.rows });
       if (q.t === 'angle') L.push({ t: '取 ' + q.a + '→' + q.b + ' 的位置差矢量为 u。在已求出合场强后，由数量积求得与此方向的夹角为 ' + o.answer + '。', tex: String.raw`\vec u=\vec r_{${q.b}}-\vec r_{${q.a}},\qquad\cos\alpha=\frac{\vec E\cdot\vec u}{|\vec E||\vec u|}=${numTex(Math.cos(o.value * Math.PI / 180))},\qquad\alpha=${f4(o.value)}^\circ` });
     } else if (q.t === 'V') {
-      L.push({ t: '电势是标量。' + q.at + ' 点的电势等于各场源电荷单独在该点产生的电势的代数和，正电荷的贡献为正，负电荷的贡献为负。', tex:String.raw`\varphi_{${q.at}}=\sum_i\frac{kq_i}{r_i}=` + o.terms.map(x => (x.q < 0 ? '-' : '+') + numTex(Math.abs(x.v))).join('').replace(/^\+/, '') + '=' + numTex(o.value) });
+      L.push({ t: '电势是标量。' + q.at + ' 点的电势等于各场源电荷单独在该点产生的电势的代数和，正电荷的贡献为正，负电荷的贡献为负。', tex:String.raw`\varphi_{${q.at}}=\sum_i\frac{kq_i}{r_i}=` + o.terms.map(x => (x.q < 0 ? '-' : '+') + numTex(Math.abs(x.v))).join('').replace(/^\+/, '') + '=' + (o.exactTex || numTex(o.value)) });
     } else if (q.t === 'Vcmp') {
       L.push({ t: '分别计算 ' + q.a + '、' + q.b + ' 两点的电势。', tex: String.raw`\varphi_{${q.a}}=${numTex(o.va)},\quad\varphi_{${q.b}}=${numTex(o.vb)}` }, { t: '所以 ' + o.answer + '。' });
     } else if (q.t === 'W') {
-      L.push({ t: '静电力做的功等于试探电荷的电荷量与起点、终点间电势差的乘积，即 W = q(φ_' + q.a + ' − φ_' + q.b + ')。', tex:String.raw`W=q(\varphi_{${q.a}}-\varphi_{${q.b}})=${numTex(q.q0 || 1)}\times(${numTex(o.va)}-(${numTex(o.vb)}))=${numTex(o.value)}` });
+      L.push({ t: '静电力做的功等于试探电荷的电荷量与起点、终点间电势差的乘积，即 W = q(φ_' + q.a + ' − φ_' + q.b + ')。', tex:String.raw`W=q(\varphi_{${q.a}}-\varphi_{${q.b}})=${numTex(q.q0 || 1)}\times(${numTex(o.va)}-(${numTex(o.vb)}))=${o.exactTex || numTex(o.value)}` });
     } else if (q.t === 'trend') {
       L.push({ t: '设合场强沿路径方向的分量为 E_∥。E_∥ 大于零时，沿路径电势降低；E_∥ 小于零时，沿路径电势升高。点击“引导探究”，拖动路径上的点 X，观察合场强与路径方向的夹角。' },
         { t: '所以从 ' + q.a + ' 点到 ' + q.b + ' 点，电势' + (o.answer === '多次起伏' ? '多次起伏变化' : o.answer) + '。' + (o.endSrc ? '端点 ' + o.endSrc + ' 处是' + (o.endQ > 0 ? '正' : '负') + '电荷，越靠近它，电势越趋于' + (o.endQ > 0 ? '正' : '负') + '无穷大。' : '') });

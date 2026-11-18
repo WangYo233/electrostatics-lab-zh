@@ -61,8 +61,8 @@
       case 'mid': return '线段 ' + def.a + def.b + ' 的中点';
       case 'face': return (g.flat ? (def.f.length === 3 ? '三角形 ' : '正方形 ') : '面 ') + def.f.join('') + ' 的中心' + (g.faceNote || '');
       case 'center': return g.kind && g.kind !== 'tpl' ? '原点 O' : '模型的中心';
-      case 'div': return '线段 ' + def.a + def.b + ' 上满足 ' + def.a + 'X : ' + def.a + def.b + ' = ' + EL.U.fmt(def.k, 3) + ' 的点';
-      case 'xyz': return '坐标 (' + def.p.map(x => EL.U.fmt(x, 3)).join(', ') + ')·' + u + ' 处';
+      case 'div': return '线段 ' + def.a + def.b + ' 上满足 ' + def.a + 'X : ' + def.a + def.b + ' = ' + EL.VA.cell(def.k) + ' 的点';
+      case 'xyz': return '坐标 (' + def.p.map(x => EL.VA.cell(x)).join(', ') + ')·' + u + ' 处';
       case 'sp': { const b = g.bgs && g.bgs[def.bg], s = b && b.special.find(x => x.key === def.key); return s ? '背景 ' + (def.bg + 1) + '（' + EL.GEO.TYPES[b.type].name + '）的' + s.name : '已删除的背景特殊点'; }
     }
     return '';
