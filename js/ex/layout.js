@@ -107,6 +107,11 @@
       }
       apply();
     }
+    const openGuide = EL.EX.guide;
+    EL.EX.guide = function (...args) {
+      panels.guide = false; view.classList.remove('model-only');
+      const result = openGuide.apply(this, args); decorateGuide(); save(); return result;
+    };
     new MutationObserver(decorateGuide).observe(cap, { childList: true, attributes: true, attributeFilter: ['hidden'] });
     const observer = new ResizeObserver(schedule); observer.observe(work); observer.observe(controls); observer.observe(view);
     document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) view.classList.remove('model-only'); schedule(); });
