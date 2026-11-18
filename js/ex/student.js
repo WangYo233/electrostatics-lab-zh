@@ -73,6 +73,7 @@
       if (R.analytic) { points.push([0, 0, 0]); if (pb.sp.a) for (const sign of [-1, 1]) points.push(W.M([sign * pb.sp.a, 0, 0]), W.M([0, 0, sign * pb.sp.a])); }
       const proof = S.sol.ans[i].pathProof;
       if (proof) points.push(...proof.sources.map(x => W.M(x.foot)));
+      W.r.resize();
       const cam = W.r.cam;
       cam.tween({ ...cam.frame(points), ...(R.g.flat ? { theta: -Math.PI / 2, phi: 1.5 } : {}) }, 600);
     });

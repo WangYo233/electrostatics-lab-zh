@@ -94,7 +94,7 @@
   window.addEventListener('DOMContentLoaded', () => {
     const tools = document.querySelector('.ex-layout-tools'); if (!tools || !W.r) return;
     dialog = U.h('dialog.ex-route-dialog'); document.querySelector('.view').append(dialog);
-    const settings = U.h('button', { type: 'button', id: 'exProbeRoute', title: L('探针与路径', 'Probe and route'), 'aria-label': L('探针与路径', 'Probe and route'), onclick: openSettings }, '◎'); tools.insertBefore(settings, tools.querySelector('.ex-layout-spacer'));
+    const settings = U.h('button', { type: 'button', id: 'exProbeRoute', title: L('探针与路径', 'Probe and route'), 'aria-label': L('探针与路径', 'Probe and route'), onclick: openSettings }, '◎'); tools.querySelector('.ex-panel-tools').insertBefore(settings, tools.querySelector('.ex-layout-spacer'));
     const progress = U.h('input', { type: 'range', class: 'route-progress', min: 0, max: 1, step: .001, value: 0, 'aria-label': L('自主路径进度', 'Independent route progress') });
     progress.addEventListener('input', () => { R.stop(); R.t = Number(progress.value); R.draw(); });
     reading = U.h('output.route-reading', null, 'V = —'); controls = U.h('div.ex-route-controls');
@@ -114,8 +114,6 @@
     }, true);
     stage.addEventListener('dblclick', e => { if (R.drawing) { e.preventDefault(); e.stopImmediatePropagation(); R.finish(); } }, true);
     document.addEventListener('keydown', e => { if (R.drawing && e.key === 'Escape') { e.preventDefault(); R.cancel(); } if (R.drawing && e.key === 'Enter' && !/INPUT|TEXTAREA/.test(e.target.tagName)) { e.preventDefault(); R.finish(); } });
-    const measure = () => document.querySelector('.view').style.setProperty('--ex-toolbar-height', tools.offsetHeight + 'px');
-    new ResizeObserver(measure).observe(tools); measure();
     R.draw();
   });
 })(window.EL);

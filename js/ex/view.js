@@ -29,6 +29,7 @@
     if (X.S?.f && document.body.dataset.exmode === 'student' && X.renderCap) X.renderCap();
   };
   W.align = function (n, points) {
+    W.r.resize();
     const cam = W.r.cam;
     if (n === 'reset') return cam.reset(AD * 1.2, false, true);
     let d = V.norm(n);

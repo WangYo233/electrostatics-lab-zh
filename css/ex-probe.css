@@ -1,11 +1,24 @@
-/* Independent route controls remain outside the model canvas. */
-body.ex .ex-layout-tools { flex-wrap: wrap; height: auto; min-height: 34px; align-content: center; padding: 2px; }
-.ex-route-controls { display: none; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+/* Grouped tools stay outside the model and wrap without covering it. */
+body.ex .ex-layout-tools { grid-area: layout; align-self: start; display: flex; flex-wrap: wrap; align-items: center; align-content: start; gap: 6px 12px; min-width: 0; padding: 0; }
+.ex-panel-tools, .ex-view-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.ex-panel-tools { flex: 1 1 170px; }
+.ex-view-tools { flex: 0 1 auto; }
+.ex-layout-spacer { flex: 1; }
+.ex-layout-tools button { display: inline-grid; place-items: center; flex: none; width: 32px; min-height: 32px; padding: 4px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: var(--surface); font: inherit; font-size: 16px; line-height: 1.2; cursor: pointer; }
+.ex-layout-tools button:hover, .ex-layout-tools button[aria-pressed=true] { color: var(--accent-2); border-color: var(--accent); background: var(--accent-soft); }
+.ex-layout-tools button:disabled { opacity: .45; cursor: default; }
+.ex-layout-tools button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+body.ex .ex-layout-tools button[hidden] { display: none; }
+.ex-display-tools { display: flex; flex: 1 0 100%; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.ex-display-tools .sb-mid { flex: 0 1 auto; }
+.ex-display-tools .sb-layers { display: flex; flex: 1; min-width: 0; flex-wrap: wrap; justify-content: flex-start; gap: 4px; }
+.ex-display-tools .sb-layers button { width: auto; font-size: 12px; padding: 5px 8px; white-space: normal; }
+.ex-route-controls { display: none; align-items: center; gap: 8px; flex: 1 0 100%; flex-wrap: wrap; min-width: 0; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .ex-route-controls.active { display: flex; }
-.ex-route-controls .route-progress { flex: 0 0 clamp(70px, 12vw, 180px); width: clamp(70px, 12vw, 180px); min-width: 70px; padding: 0; accent-color: var(--accent); }
-.ex-route-controls button { width: auto; min-width: 30px; padding: 0 9px; font-size: 12px; }
+body.ex .ex-route-controls .route-progress { flex: 1 1 100px; width: 100px; min-width: 70px; padding: 0; accent-color: var(--accent); }
+.ex-route-controls button { width: auto; min-width: 32px; padding: 5px 10px; font-size: 12px; }
 .ex-route-controls .route-play { font-size: 15px; }
-.route-reading { color: var(--ink); font-variant-numeric: tabular-nums; font-size: 12px; min-width: 76px; }
+.route-reading { color: var(--ink); font-variant-numeric: tabular-nums; font-size: 12px; min-width: 90px; }
 .ex-route-controls .route-drawing { display: none; }
 .ex-route-controls.drawing .route-drawing { display: inline-grid; }
 .ex-route-controls.drawing > :not(.route-drawing) { display: none; }
