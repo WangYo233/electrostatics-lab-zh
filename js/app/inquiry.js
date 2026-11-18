@@ -38,7 +38,7 @@
           const rows = P.parse(input.value); if (rows.length !== 1) throw Error();
           const p = rows[0];
           if ((key === 'normal' && V.len(p) < 1e-8) || (key === 'a' && V.dist(p, s.b) < 1e-8) || (key === 'b' && V.dist(p, s.a) < 1e-8)) throw Error();
-          change(() => { s[key] = p; });
+          change(() => { s[key] = p; if(st.layers.probe) A.enableRouteProbe(); });
         } catch (_) { input.value = s[key].join(', '); error(); }
       });
       return h('label.ctl.inquiry-input', null, h('span', null, label), input);
@@ -46,22 +46,33 @@
     const planeFields = () => [vector('origin', L('平面上一点 (x, y, z) / L', 'Point on plane (x, y, z) / L')), vector('normal', L('平面法向量 (nx, ny, nz)', 'Plane normal (nx, ny, nz)'))];
     const opts = [['free', L('自由移动', 'Free movement')], ['plane', L('约束在平面内', 'Constrain to plane')], ['line', L('约束在直线上', 'Constrain to line')]];
     const motion = [];
-    if (free) {
-      motion.push(K.select(L('探针位置约束', 'Probe constraint'), opts, s.constraint, v => change(() => { s.constraint = v; })));
+    if (st.layers.probe) {
+      motion.push(K.select(L('探针位置约束', 'Probe constraint'), opts, s.constraint, v => change(() => { s.constraint = v; A.enableRouteProbe(); })));
       if (s.constraint === 'line') motion.push(vector('a', L('直线点 A (x, y, z) / L', 'Line point A (x, y, z) / L')), vector('b', L('直线点 B (x, y, z) / L', 'Line point B (x, y, z) / L')));
       if (s.constraint === 'plane') motion.push(...planeFields());
       motion.push(K.note(L('坐标输入与拖动都会投影到约束线上/面上。斜线或斜面建议切换三维视图。', 'Coordinate edits and dragging are projected onto the constraint. Use 3D view for oblique geometry.')));
-    } else motion.push(K.note(L('当前模型的观察点/路径由题设固定。自定义探针约束请进入自主探究，或启用模型的自定义探针。以下路径仍可用于电势搜索。', 'This model fixes the observation point/path. Use Free exploration or enable its custom probe to set constraints. The route below remains available for potential searches.')));
+    }
     const routeLabel = L('路径点：每行 x, y, z（单位 L，至少两点）', 'Waypoints: x, y, z per line (L; at least two)');
     const ta = h('textarea', { rows: 4, 'aria-label': routeLabel, style: 'width:100%;box-sizing:border-box;resize:vertical' }, s.points.map(p => p.join(', ')).join('\n'));
-    motion.push(h('label.ctl.inquiry-input', null, h('span', null, routeLabel), ta), K.btn(L('应用路径', 'Apply path'), () => {
-      try { const pts = P.parse(ta.value); if (!P.validPath(pts) || !P.validPath(pts.map(p => P.project(p, s)))) throw Error(); change(() => { s.points = pts; s.t = 0; s.showPath = true; if (free) A.moveRouteProbe(0); }); }
+    if (st.layers.probe) {
+    motion.push(K.select(L('路径方式', 'Route type'), [['waypoints',L('逐点连接','Connected points')],['formula',L('函数公式','Parametric formula')]], s.routeMode, v => change(() => { s.routeMode = v; })));
+    if (s.routeMode === 'waypoints') motion.push(h('div.btns',null,K.btn(L('在模型上选点','Pick on model'),()=>A.startRoutePick(),'primary')),h('label.ctl.inquiry-input', null, h('span', null, routeLabel), ta), K.btn(L('应用坐标路径', 'Apply coordinate path'), () => {
+      try { const pts = P.parse(ta.value); if (pts.length>64 || !P.validPath(pts) || !P.validPath(pts.map(p => P.project(p, s)))) throw Error(); change(() => { s.points = pts; s.routeMode='waypoints'; s.t = 0; s.showPath = true; A.enableRouteProbe(); A.update(); A.moveRouteProbe(0); }); }
       catch (_) { error(); }
     }), K.note(L('路径为依次连接各点的折线；启用约束时，路径点也投影到约束线上/面上。', 'The route joins the waypoints in order. When constrained, waypoints are projected onto that line/plane.')),
     K.check(L('显示路径和约束参考', 'Show route and constraint guides'), s.showPath, v => change(() => { s.showPath = v; })));
-    if (free) motion.push(K.slider({ label: L('路径进度', 'Route progress'), min: 0, max: 1, step: 0.001, val: s.t, on: (v, live) => { if (st.anim.on || st.anim.paused) A.stopAnim(); A.moveRouteProbe(v); A.update(); if (!live) A.renderPanel(); } }),
-      h('div.btns', null, K.btn(st.anim.on && st.anim.target === 'route' ? L('暂停路径动画', 'Pause route') : L('播放路径动画', 'Play route'), () => { st.layers.probe = true; s.showPath = true; A.update(); A.renderStageBar(); if (!P.validPath(P.route(s))) return error(); A.toggleAnim(st.anim.on && st.anim.target === 'route' ? null : 'route'); }, 'primary'), K.btn(L('停止并复位', 'Stop and reset'), () => A.resetAnim())),
+    else {
+      const inputs={};
+      for (const key of ['x','y','z','min','max']) { const label=['min','max'].includes(key)?(key==='min'?L('t 起点','t start'):L('t 终点','t end')):key+'(t) / L'; inputs[key]=h('input',{type:'text',value:String(s.formula[key]),'aria-label':label}); motion.push(h('label.ctl.inquiry-input',null,h('span',null,label),inputs[key])); }
+      motion.push(K.note(L('使用 t、pi、sin、cos、sqrt、+ − * / ^；例如 x(t)=2*cos(t)，y(t)=2*sin(t)。','Use t, pi, sin, cos, sqrt, + − * / ^; e.g. x(t)=2*cos(t), y(t)=2*sin(t).')),K.btn(L('应用函数路径','Apply formula route'),()=>{
+        try { const f={x:inputs.x.value,y:inputs.y.value,z:inputs.z.value,min:Number(inputs.min.value),max:Number(inputs.max.value)}; const pts=P.sampleFormula(f).map(p=>P.project(p,s)); if(!P.validPath(pts)) throw Error(); change(()=>{s.formula=f;s.routeMode='formula';s.t=0;s.showPath=true;A.enableRouteProbe();A.update();A.moveRouteProbe(0);}); }
+        catch(_){U.toast(L('公式或区间无效；请使用显式乘号，并确保整条路径坐标有限且不完全重合。','Invalid formula or interval. Use explicit multiplication and finite, nonconstant coordinates.'));}
+      },'primary'),K.check(L('显示路径和约束参考','Show route and constraint guides'),s.showPath,v=>change(()=>{s.showPath=v;})));
+    }
+    if(s.routeEnabled) motion.push(K.slider({ label: L('路径进度', 'Route progress'), min: 0, max: 1, step: 0.001, val: s.t, on: (v, live) => { if (st.anim.on || st.anim.paused) A.stopAnim(); A.moveRouteProbe(v); A.update(); if (!live) A.renderPanel(); } }),
+      h('div.btns', null, K.btn(st.anim.on && st.anim.target === 'route' ? L('暂停路径动画', 'Pause route') : L('播放路径动画', 'Play route'), () => { st.layers.probe = true; s.showPath = true; A.enableRouteProbe(); A.update(); A.renderStageBar(); if (!P.validPath(P.route(s))) return error(); A.toggleAnim(st.anim.on && st.anim.target === 'route' ? null : 'route'); }, 'primary'), K.btn(L('停止并复位', 'Stop and reset'), () => A.resetAnim()),K.btn(L('恢复模型探针','Restore model probe'),()=>change(()=>A.disableRouteProbe()))),
       K.note(L('周期、轨迹和场强箭头轨迹可在“动画”工具栏设置。', 'Set period, position trails and field-vector trails in Animation.')));
+    } else motion.push(K.note(L('打开探针后可设置函数路径或在模型上逐点选取路径。','Enable the probe to define a formula route or select points on the model.')));
     const max = [K.select(L('搜索范围', 'Search domain'), (c.m.analytic ? [] : [['global', L('整体模型（全空间）', 'Whole model (all space)')]]).concat([['box', L('当前显示范围', 'Current display bounds')], ['path', L('规定路线', 'Defined route')], ['plane', L('规定平面：有限正方形', 'Defined plane: bounded square')]]), s.maxScope, v => change(() => { s.maxScope = v; }))];
     if (s.maxScope === 'plane') {
       if (!(free && s.constraint === 'plane')) max.push(...planeFields());
@@ -77,16 +88,19 @@
   A.moveRouteProbe = t => {
     const c = A.c, s = c.st.inquiry;
     if (!c.probe || !c.probe.free) return;
-    s.t = U.clamp(t, 0, 1);
-    const p = P.at(P.route(s), s.t);
+    const progress=U.clamp(t, 0, 1);let p;
+    try{p=P.position(s,progress);}catch(_){A.stopAnim();U.toast(L('此处路径公式无定义，动画已停止。请修改公式或区间。','The route formula is undefined here. Animation stopped; adjust the formula or interval.'));return false;}
+    s.t = progress;
     c.probe.free.forEach((key, i) => { c.st.p[key] = p[i]; });
+    const keys=c.m.probe?.free;if(s.routeEnabled&&keys) keys.forEach((key,i)=>{c.st.p[key]=p[i];});
+    return true;
   };
   A.addInquiry = (c, sc) => {
     const s = c.st.inquiry, C = EL.C, R = c.bound, pts = P.route(s);
     const line = (points, color) => sc.lines.push({ pts: points, color: color || C.probe, width: 1.8, dash: [R * 0.025, R * 0.012] });
     const plane = d => { const q = [[-1,-1],[1,-1],[1,1],[-1,1]].map(([u,v]) => V.add(d.origin, V.add(V.mul(d.u,u*d.half),V.mul(d.v,v*d.half)))); line(q.concat([q[0]]), C.guide); };
     if (s.showPath && c.probeVisible && c.probe.free) {
-      line(pts); pts.forEach((p, i) => sc.labels.push({ p, text: 'P' + i, cls: 'probe' }));
+      line(pts); if(V.dist(pts[0],pts[pts.length-1])<1e-7)sc.labels.push({p:pts[0],text:L('起点 / 终点','Start / End'),cls:'probe'});else [0,pts.length-1].forEach(i => sc.labels.push({ p:pts[i], text:i===0?L('起点','Start'):L('终点','End'), cls:'probe' }));
       if (s.constraint === 'plane') plane(P.plane(Object.assign({}, s, { half: R })));
       if (s.constraint === 'line') { const d = V.norm(V.sub(s.b, s.a)); line([V.addS(s.a,d,-R), V.addS(s.a,d,R)], C.guide); }
     }

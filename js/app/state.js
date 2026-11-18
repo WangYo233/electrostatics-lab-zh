@@ -38,6 +38,8 @@
 
   // 应用教学阶段：参数预设、视图与显示层
   A.applyStage = function (i, keepLayers) {
+    if (A.restoreRouteProbe && A.st.inquiry?.routeEnabled) A.restoreRouteProbe(false);
+    else if (A.cancelRoutePick) A.cancelRoutePick(false);
     const st = A.st, m = st.model, s = m.stages[i];
     st.stage = i;
     if (s.preset) { Object.assign(st.p, s.preset); if (!m.alwaysCustom) st.custom = null; }
@@ -81,6 +83,7 @@
   // 同一次操作中多次调用 A.update 只记一步
   A.histSoon = function () { const H = A.hist; if (H.t) return; H.t = setTimeout(() => { H.t = 0; A.histCommit(); }, 0); };
   A.histApply = function (json) {
+    if (A.cancelRoutePick) A.cancelRoutePick();
     const st = A.st, d = JSON.parse(json), H = A.hist;
     if (st.anim.on) { st.anim.on = false; cancelAnimationFrame(A.raf); }
     H.cur = json;                          // 先设定当前状态：恢复过程中的 A.update 不会再记一步
@@ -306,16 +309,23 @@
     if (path) c.probe = { path, t: p[path.key], pos: path.pos(p[path.key]), name: pr.nameFn ? pr.nameFn() : 'P' };
     else if (fixed) c.probe = { pos: fixed.pos, name: fixed.name, fixed: true };
     else if (pr.free) c.probe = { pos: pr.free.map(k => p[k]), free: pr.free, name: 'P' };
+    // A custom route adds an independent observation probe without changing source geometry.
+    if (st.inquiry && (st.inquiry.routeEnabled || (st.layers.probe && (!c.probe || (!useCustom && pr.fromStage != null && st.stage < pr.fromStage))))) {
+      st.inquiry.routeEnabled = true;
+      const keys = ['__routeX', '__routeY', '__routeZ'], initial = c.probe ? c.probe.pos : [0, c.bound * 0.25, 0];
+      keys.forEach((key, i) => { if (!Number.isFinite(p[key])) p[key] = initial[i]; });
+      c.probe = { pos: keys.map(key => p[key]), free: keys, name: 'P', route: true };
+    }
     if (EL.ProbeMotion && st.inquiry && c.probe && c.probe.free) {
       c.probe.pos = EL.ProbeMotion.project(c.probe.pos, st.inquiry);
       c.probe.free.forEach((key, i) => { p[key] = c.probe.pos[i]; });
     }
-    if (c.probe) { c.probe.s = c.F.sample(c.probe.pos); c.probe.own = !!pr.ownVectors; }
+    if (c.probe) { c.probe.s = c.F.sample(c.probe.pos); c.probe.own = !c.probe.route && !!pr.ownVectors; }
     // 构造步骤
     c.cs = A.stepState(c);
     c.hide = new Set();
     if (c.cs && c.cs.k >= 0 && c.cs.steps[c.cs.k].hide) c.cs.steps[c.cs.k].hide.forEach(x => c.hide.add(x));
-    c.probeVisible = !!c.probe && st.layers.probe && (pr.fromStage == null || st.stage >= pr.fromStage || useCustom);
+    c.probeVisible = !!c.probe && st.layers.probe && (pr.fromStage == null || st.stage >= pr.fromStage || useCustom || st.inquiry.routeEnabled);
     // 过探针的等势面：把探针处的电势加入层值，拖动探针即可寻找曲面“收缩成一点”的位置（零场点）
     c.probeLevel = st.probeLevel && c.probeVisible && c.probe.s.ok ? +c.probe.s.V.toFixed(6) : null;
     if (c.probeLevel != null && !c.levels.some(v => Math.abs(v - c.probeLevel) < 1e-6)) c.levels = c.levels.concat(c.probeLevel).sort((a, b) => a - b);

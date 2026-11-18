@@ -1,0 +1,26 @@
+/* Independent route controls remain outside the model canvas. */
+body.ex .ex-layout-tools { flex-wrap: wrap; height: auto; min-height: 34px; align-content: center; padding: 2px; }
+.ex-route-controls { display: none; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.ex-route-controls.active { display: flex; }
+.ex-route-controls .route-progress { flex: 0 0 clamp(70px, 12vw, 180px); width: clamp(70px, 12vw, 180px); min-width: 70px; padding: 0; accent-color: var(--accent); }
+.ex-route-controls button { width: auto; min-width: 30px; padding: 0 9px; font-size: 12px; }
+.ex-route-controls .route-play { font-size: 15px; }
+.route-reading { color: var(--ink); font-variant-numeric: tabular-nums; font-size: 12px; min-width: 76px; }
+.ex-route-controls .route-drawing { display: none; }
+.ex-route-controls.drawing .route-drawing { display: inline-grid; }
+.ex-route-controls.drawing > :not(.route-drawing) { display: none; }
+.ex-route-dialog { width: min(580px, calc(100vw - 28px)); max-height: 86vh; box-sizing: border-box; overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 18px; color: var(--ink); background: var(--surface); box-shadow: 0 12px 48px #0006; }
+.ex-route-dialog::backdrop { background: #07111d99; }
+.ex-route-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ex-route-dialog header button { min-width: 32px; font-size: 20px; }
+.ex-route-dialog section { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; }
+.ex-route-dialog h3 { font-size: 15px; margin: 4px 0 10px; }
+.ex-route-dialog .route-field { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(0, 2fr); align-items: center; gap: 10px; margin: 8px 0; color: var(--ink); font-size: 13px; }
+.ex-route-dialog input:not([type=checkbox]), .ex-route-dialog select, .ex-route-dialog textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 7px 9px; border: 1px solid #8c9bb0; border-radius: 6px; background: #fff; color: #152238; font-size: 14px; }
+.ex-route-dialog textarea { resize: vertical; font-family: monospace; }
+.ex-route-dialog .route-row { display: flex; gap: 12px; }
+.ex-route-dialog .route-row > * { flex: 1; min-width: 0; }
+.ex-route-dialog .route-row .route-field { grid-template-columns: auto minmax(0, 1fr); }
+.ex-route-dialog .route-check { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
+.ex-route-dialog .note { line-height: 1.5; color: var(--muted); font-size: 12px; }
+@media (max-width: 480px) { .ex-route-dialog .route-row { flex-direction: column; gap: 0; } .ex-route-dialog .route-field { grid-template-columns: 90px minmax(0, 1fr); } }

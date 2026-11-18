@@ -99,7 +99,7 @@
           st.p[path.key] = +(Math.round(best / stp) * stp).toFixed(4);
         } });
       } else {
-        const keys = pr.free, lim = c.m.params.find(x => x.key === keys[0]);
+        const keys = pr.free, lim = c.m.params.find(x => x.key === keys[0]) || { min: -1000, max: 1000 };
         hs.push({ p: pr.pos, kind: 'probe', move: q => {
           if (is2d) { const d = V.dot(q, B.n) - V.dot(pr.pos, B.n); q = V.addS(q, B.n, -d); }
           keys.forEach((k, i) => { st.p[k] = +EL.U.clamp(q[i], lim.min, lim.max).toFixed(3); });

@@ -116,3 +116,48 @@ body.ex .view.has-guide > .caption, body.ex .view.has-guide:fullscreen > .captio
 
 body.ex .view.has-guide > #caption, body.ex .view.has-guide:fullscreen > #caption { max-height: none; }
 body.ex .cap-curve-wrap { height: 146px; flex-shrink: 0; }
+
+
+/* Panel controls occupy their own row, outside the model and guide. */
+body.ex .ex-layout-tools { grid-area: layout; display: flex; align-items: center; gap: 6px; min-width: 0; height: 34px; padding: 0 2px; }
+.ex-layout-tools button { display: inline-grid; place-items: center; flex: none; width: 32px; height: 30px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: var(--surface); font-size: 18px; line-height: 1; }
+.ex-layout-tools button:hover, .ex-layout-tools button[aria-pressed=true] { color: var(--accent-2); border-color: var(--accent); background: var(--accent-soft); }
+.ex-layout-tools button:disabled { opacity: .4; cursor: default; }
+.ex-layout-tools button:focus-visible, .model-corner:focus-visible, .guide-corner:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ex-layout-spacer { flex: 1; }
+body.ex .ex-layout-tools button[hidden] { display: none; }
+body.ex .ex-work > .view.has-guide[data-guide-dock] > .stage { grid-area: model; }
+body.ex .ex-work > .view.has-guide[data-guide-dock] > .caption { grid-area: guide; }
+body.ex .ex-work > .view, body.ex .ex-work > .view:fullscreen { grid-template-areas: 'layout' 'model'; grid-template-rows: var(--ex-toolbar-height, 34px) minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); }
+body.ex .ex-work > .view > .stage { grid-area: model; width: min(100%, var(--model-width, 100%)); height: min(100%, var(--model-height, 100%)); max-width: 100%; max-height: 100%; min-width: 0; justify-self: center; align-self: stretch; }
+body.ex .ex-work > .view > .caption { grid-area: guide; width: min(100%, var(--guide-width, 100%)); height: min(100%, var(--guide-height, 100%)); max-width: 100%; max-height: 100%; justify-self: center; align-self: stretch; box-sizing: border-box; }
+body.ex .ex-work > .view.has-guide, body.ex .ex-work > .view.has-guide:fullscreen { grid-template-areas: 'layout' 'model' 'guide'; grid-template-rows: var(--ex-toolbar-height, 34px) minmax(180px, 1fr) minmax(130px, var(--guide-extent, 310px)); grid-template-columns: minmax(0, 1fr); }
+body.ex .ex-work > .view.has-guide[data-guide-dock=top] { grid-template-areas: 'layout' 'guide' 'model'; grid-template-rows: var(--ex-toolbar-height, 34px) minmax(130px, var(--guide-extent, 310px)) minmax(180px, 1fr); }
+body.ex .ex-work > .view.has-guide[data-guide-dock=left] { grid-template-areas: 'layout layout' 'guide model'; grid-template-rows: var(--ex-toolbar-height, 34px) minmax(0, 1fr); grid-template-columns: minmax(180px, var(--guide-extent, 280px)) minmax(180px, 1fr); }
+body.ex .ex-work > .view.has-guide[data-guide-dock=right] { grid-template-areas: 'layout layout' 'model guide'; grid-template-rows: var(--ex-toolbar-height, 34px) minmax(0, 1fr); grid-template-columns: minmax(180px, 1fr) minmax(180px, var(--guide-extent, 280px)); }
+body.ex .ex-work > .view.guide-collapsed[data-guide-dock], body.ex .ex-work > .view.model-only[data-guide-dock] { grid-template-areas: 'layout' 'model'; grid-template-rows: var(--ex-toolbar-height, 34px) minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); }
+body.ex .view.guide-collapsed > .caption, body.ex .view.model-only > .caption { display: none !important; }
+body.ex .view.model-only > .stage { width: 100%; height: 100%; }
+body.ex .ex-work.left-off > .ex-left, body.ex .ex-work.right-off > .ex-right, .ex-work.left-off > .ex-divider[data-side=left], .ex-work.right-off > .ex-divider[data-side=right] { display: none; }
+.model-corner, .guide-corner { display: block; width: 26px; height: 26px; border: 0; border-right: 3px double currentColor; border-bottom: 3px double currentColor; border-radius: 0 0 5px; color: #f2f6fc; background: #172338; touch-action: none; user-select: none; cursor: nwse-resize; z-index: 7; }
+.model-corner { position: absolute; right: 5px; bottom: 5px; }
+.guide-corner { position: sticky; float: right; bottom: 0; margin: 0 -6px -10px 5px; }
+.stage[data-theme=light] .model-corner, .caption[data-theme=light] .guide-corner { color: #172033; background: #f1f4f8; }
+.model-corner.resizing, .guide-corner.resizing { outline: 2px solid var(--accent); }
+.guide-grip > span { flex: 1; }
+.guide-grip .guide-fold { min-width: 28px; height: 26px; font-size: 18px; }
+@media (min-width: 1101px) {
+  body.ex .ex-work { grid-template-columns: var(--ex-left, 250px) 8px minmax(320px, 1fr) 8px var(--ex-right, 380px); }
+  body.ex .ex-work.left-off { grid-template-columns: minmax(320px, 1fr) 8px var(--ex-right, 380px); }
+  body.ex .ex-work.right-off { grid-template-columns: var(--ex-left, 250px) 8px minmax(320px, 1fr); }
+  body.ex .ex-work.left-off.right-off { grid-template-columns: minmax(0, 1fr); }
+}
+@media (min-width: 721px) and (max-width: 1100px) {
+  body.ex .ex-work.left-off { grid-template-columns: minmax(0, 1fr); }
+  body.ex .ex-work.right-off { grid-template-rows: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  body.ex .ex-work > .view.has-guide[data-guide-dock] { grid-template-areas: 'layout' 'model' 'guide'; grid-template-rows: var(--ex-toolbar-height, 34px) minmax(260px, 1fr) minmax(130px, var(--guide-extent, 270px)); grid-template-columns: minmax(0, 1fr); }
+  body.ex .ex-work > .view.guide-collapsed[data-guide-dock], body.ex .ex-work > .view.model-only[data-guide-dock] { grid-template-areas: 'layout' 'model'; grid-template-rows: var(--ex-toolbar-height, 34px) minmax(0, 1fr); }
+  body.ex .ex-work > .view:fullscreen { min-height: 100vh; }
+}

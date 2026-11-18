@@ -5,6 +5,7 @@
 
   A.update = function () {
     const st = A.st;
+    if (A.routePick && !st.layers.probe) A.cancelRoutePick(false);
     A.c = A.ctx();
     U.$('#btnTop').disabled = st.view !== '3d';
     A.r.cam.mode = st.view; A.r.cam.plane = st.plane; A.r.cam.planePos = st.planePos;
@@ -75,6 +76,7 @@
   };
   // 工作区：理论 / 探究 / 分析 / 记录，每个工作区只呈现对应的一组功能
   A.setMode = function (mode, now) {
+    if (document.body.dataset.mode !== mode && A.cancelRoutePick) A.cancelRoutePick();
     // A canvas/curve fullscreen cannot display the sibling workspace panels.
     if (document.fullscreenElement && document.body.dataset.mode !== mode) {
       return document.exitFullscreen().then(() => A.setMode(mode, now));
@@ -117,6 +119,7 @@
     A.renderStageBar(); A.renderStepList();
   };
   A.gotoStage = function (i) {
+    if (A.cancelRoutePick) A.cancelRoutePick();
     const st = A.st;
     if (i < 0 || i >= st.model.stages.length) return;
     A.stopAnim();
@@ -130,6 +133,7 @@
   };
 
   A.onModelChange = function () {
+    if (A.cancelRoutePick) A.cancelRoutePick();
     A.cache.clear();
     A.update(); A.resetCamera(); A.update();
     A.renderStage(); A.renderPanel(); A.renderTheory(); A.renderCaption(true); A.renderDerive();
@@ -303,6 +307,7 @@
   const draftKey = () => 'draft:' + A.st.model.id;
   A.snapshot = () => { const st = A.st; return JSON.stringify({ v: 2, model: st.model.id, stage: st.stage, notes: st.notes, labels: st.labels, geo: st.geo, inquiry: st.inquiry, p: st.p, hidden: st.hidden, sub: st.sub, custom: st.custom, view: st.view, plane: st.plane, planePos: st.planePos, layers: st.layers, level: st.level, spacing: st.spacing, count: st.count, probeLevel: !!st.probeLevel, seeds: st.seeds, quality: st.quality, style: st.style, cam: { theta: A.r.cam.theta, phi: A.r.cam.phi, dist: A.r.cam.dist, half: A.r.cam.half } }); };
   A.restore = function (json) {
+    if (A.cancelRoutePick) A.cancelRoutePick();
     const d = typeof json === 'string' ? JSON.parse(json) : json, st = A.st;
     if (String(d.model) !== String(st.model.id)) throw new Error('这份草稿属于另一个模型，无法载入。');
     A.stopAnim();
@@ -335,6 +340,7 @@
     A.applyStage(0, true);
     try { A.r = new EL.Renderer(U.$('#gl'), U.$('#labels')); } catch (e) { U.$('#stage').replaceChildren(h('p.err', null, '无法初始化 WebGL（' + e.message + '）。请改用支持 WebGL 的现代浏览器。')); return; }
     U.$('#gl').addEventListener('contextmenu', event => A.r.labelMenu(event, null));
+    if (A.initRouteEditor) A.initRouteEditor();
     const cam = A.r.cam;
     cam.attach(U.$('#gl'), {
       change: () => A.r.draw(),

@@ -93,10 +93,11 @@
         F = EL.Phys.pointField(src, 0.15);
         lines = cached(lk, () => EL.FL.pointLines(F, { seeds: 10, bound: AD * 1.6, step: AD * 1.6 * 0.016, maxSteps: 1400 }));
       }
-      if (L.lines) lines.forEach(l => {
-        out.lines.push({ pts: l, color: [...C.field, 0.7], width: 1.1, reveal: W.r.fx.reveal });
-        const a = EL.FL.arrowAt(l, 0.45);
-        if (a && a.L > AD * 0.08) { const size = AD * 0.1; out.arrows.push({ p: V.addS(a.p, a.d, -size / 2), v: V.mul(a.d, size), color: [...C.field, 0.82], width: 1.5, head: size, reveal: W.r.fx.reveal }); }
+      if (L.lines) lines.forEach(original => {
+        const l = EL.FL.renderLine(original);
+        out.lines.push({ pts: l, color: [...C.field, 0.7], width: 1.1, reveal: W.r.fx.reveal, preserve: true });
+        const size = AD * 0.1, a = EL.FL.arrowAt(l, 0.45, size);
+        if (a && a.L > AD * 0.08) out.arrows.push({ p: a.start, v: a.v, color: [...C.field, 0.82], width: 1.5, head: size, reveal: W.r.fx.reveal, revealAt: a.fraction });
       });
       if (L.flow) out.flow = cached('F' + lk, () => ({ lines: EL.Flow.speeds(F, lines, 'sqrt'), bound: AD * 1.6 }));
     }

@@ -51,3 +51,87 @@
     handles();
   });
 })(window.EL);
+
+
+// Panel visibility and two-dimensional resizing preserve the current inquiry step.
+(function (EL) {
+  window.addEventListener('DOMContentLoaded', () => {
+    const U = EL.U, view = document.querySelector('.ex-work > .view'), work = view.parentElement, cap = U.$('#caption'), stage = U.$('#stage');
+    const en = document.documentElement.lang.startsWith('en'), L = (zh, eng) => en ? eng : zh;
+    const state = Object.assign({ left: false, right: false, guide: false, modelWidth: 0, modelHeight: 0, guideWidth: 0, guideHeight: 0 }, U.store.get('ex:panels', {}));
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+    const save = () => U.store.set('ex:panels', state);
+    const controls = U.h('div.ex-layout-tools', { role: 'toolbar', 'aria-label': L('面板布局', 'Panel layout') });
+    const btn = (id, icon, label, action) => U.h('button', { id, type: 'button', title: label, 'aria-label': label, onclick: action }, icon);
+    const left = btn('exToggleLeft', '◧', '', () => { state.left = !state.left; apply(); save(); });
+    const right = btn('exToggleRight', '◨', '', () => { state.right = !state.right; apply(); save(); });
+    const guide = btn('exToggleGuide', '▤', '', () => {
+      state.guide = view.classList.contains('model-only') ? false : !state.guide; view.classList.remove('model-only'); apply(); save();
+    });
+    const only = btn('exModelOnly', '⛶', L('仅模型全屏', 'Model-only fullscreen'), async () => {
+      if (view.classList.contains('model-only')) { view.classList.remove('model-only'); apply(); return; }
+      view.classList.add('model-only'); apply();
+      if (!document.fullscreenElement && view.requestFullscreen) {
+        try { await view.requestFullscreen(); } catch (_) { view.classList.remove('model-only'); apply(); }
+      }
+    });
+    const reset = btn('exResetPanels', '↺', L('恢复面板', 'Restore panels'), () => {
+      Object.assign(state, { left: false, right: false, guide: false, modelWidth: 0, modelHeight: 0, guideWidth: 0, guideHeight: 0 });
+      view.classList.remove('model-only'); apply(); save();
+    });
+    controls.append(left, right, guide, U.h('span.ex-layout-spacer'), only, reset); view.prepend(controls);
+    const describe = (node, label, pressed) => { node.title = label; node.setAttribute('aria-label', label); node.setAttribute('aria-pressed', String(pressed)); };
+    function apply() {
+      work.classList.toggle('left-off', state.left); work.classList.toggle('right-off', state.right);
+      work.querySelector('.ex-left').inert = state.left; work.querySelector('.ex-right').inert = state.right;
+      view.classList.toggle('guide-collapsed', state.guide);
+      cap.inert = state.guide || view.classList.contains('model-only');
+      for (const key of ['modelWidth', 'modelHeight', 'guideWidth', 'guideHeight']) view.style.setProperty('--' + key.replace(/[A-Z]/g, x => '-' + x.toLowerCase()), state[key] ? state[key] + 'px' : '100%');
+      const showGuide = !cap.hidden && !state.guide && !view.classList.contains('model-only');
+      describe(left, L(state.left ? '展开题目列表' : '收起题目列表', state.left ? 'Show problem list' : 'Hide problem list'), !state.left);
+      describe(right, L(state.right ? '展开题目内容' : '收起题目内容', state.right ? 'Show problem panel' : 'Hide problem panel'), !state.right);
+      describe(guide, L(showGuide ? '收起引导' : '展开引导', showGuide ? 'Hide guide' : 'Show guide'), showGuide);
+      describe(only, view.classList.contains('model-only') ? L('恢复面板', 'Restore panels') : L('仅模型全屏', 'Model-only fullscreen'), view.classList.contains('model-only'));
+      guide.disabled = cap.hidden; left.hidden = right.hidden = !!document.fullscreenElement;
+      if (EL.EX.W.r) requestAnimationFrame(() => EL.EX.W.r.draw());
+    }
+    function sizeHandle(which) {
+      const el = which === 'guide' ? cap : stage, handle = U.h('div.' + which + '-corner', { tabindex: '0', role: 'separator', title: L('长按调整大小', 'Hold to resize'), 'aria-label': L('长按调整大小', 'Hold to resize') });
+      const resize = (dx, dy, initial) => {
+        const w = Math.max(180, view.clientWidth - 24), h = Math.max(130, view.clientHeight - controls.offsetHeight - 24);
+        state[which + 'Width'] = clamp(initial.width + dx, 180, w);
+        state[which + 'Height'] = clamp(initial.height + dy, which === 'guide' ? 130 : 180, h);
+        if (view.classList.contains('has-guide') && !state.guide && !view.classList.contains('model-only')) {
+          const vertical = ['left', 'right'].includes(view.dataset.guideDock), layout = U.store.get('ex:layout', {});
+          if (vertical && which === 'guide') view.style.setProperty('--guide-extent', state.guideWidth + 'px');
+          if (!vertical) view.style.setProperty('--guide-extent', clamp(which === 'guide' ? state.guideHeight : h - state.modelHeight - 8, 130, h - 180) + 'px');
+          layout.extent = parseFloat(view.style.getPropertyValue('--guide-extent')); U.store.set('ex:layout', layout);
+        }
+        apply();
+      };
+      handle.addEventListener('pointerdown', e => {
+        if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); handle.setPointerCapture(e.pointerId);
+        const start = { x: e.clientX, y: e.clientY, width: el.clientWidth, height: el.clientHeight }, id = e.pointerId;
+        let active = false, timer = setTimeout(() => { active = true; handle.classList.add('resizing'); }, 380);
+        const move = ev => { if (ev.pointerId === id && active) resize(ev.clientX - start.x, ev.clientY - start.y, start); };
+        const end = ev => { if (ev.pointerId !== id) return; clearTimeout(timer); handle.classList.remove('resizing'); handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', end); handle.removeEventListener('pointercancel', end); handle.removeEventListener('lostpointercapture', end); save(); };
+        handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', end); handle.addEventListener('pointercancel', end); handle.addEventListener('lostpointercapture', end);
+      });
+      handle.addEventListener('keydown', e => { if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) return; e.preventDefault(); resize(e.key === 'ArrowRight' ? 20 : e.key === 'ArrowLeft' ? -20 : 0, e.key === 'ArrowDown' ? 20 : e.key === 'ArrowUp' ? -20 : 0, { width: el.clientWidth, height: el.clientHeight }); save(); });
+      return handle;
+    }
+    stage.append(sizeHandle('model'));
+    function handles() {
+      const grip = cap.querySelector('.guide-grip');
+      if (grip && !grip.querySelector('.guide-fold')) {
+        const fold = btn('', '−', L('收起引导', 'Hide guide'), () => { state.guide = true; apply(); save(); }); fold.className = 'guide-fold'; grip.append(fold);
+        cap.append(sizeHandle('guide'));
+      }
+      apply();
+    }
+    new MutationObserver(handles).observe(cap, { childList: true, attributes: true, attributeFilter: ['hidden'] });
+    new ResizeObserver(apply).observe(work);
+    document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) view.classList.remove('model-only'); apply(); });
+    handles();
+  });
+})(window.EL);

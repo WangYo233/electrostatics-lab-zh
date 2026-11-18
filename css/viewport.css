@@ -107,3 +107,10 @@
 .labels[data-theme="dark"] .lbl { background: #0b1220; border-color: #58677d; text-shadow: none; }
 .labels[data-theme="light"] .lbl { background: #fff; border-color: #8b9bb0; text-shadow: none; }
 .labels .lbl.axis { opacity: 1; }
+
+/* Label position controls stay usable in both board themes. */
+.annotation-position { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 5px 4px; border-block: 1px solid #7898ba70; }
+.annotation-position label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; font-size: 12px; color: inherit; }
+.annotation-position input { min-width: 0; width: 100%; box-sizing: border-box; padding: 6px 7px; border: 1px solid #8b9bb0; border-radius: 5px; color: #eef4fc; background: #0b1220; font: inherit; }
+.annotation-menu[data-theme="light"] .annotation-position input { color: #172033; background: #fff; }
+.labels .lbl:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }

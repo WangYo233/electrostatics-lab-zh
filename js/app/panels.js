@@ -35,13 +35,15 @@
     if (!box.hidden && document.body.dataset.mode === 'analyze') U.$('#comp').replaceChildren(...[].concat(A.pComp(c)).filter(Boolean));
   };
   A.canCompose = c => !c.m.analytic && !!c.probe && c.sources.filter(s => s.q).length > 1;
-  // 模型是否真的有探针（圆盘模型的 probe 为 {free:null}，没有探针）
-  A.hasProbe = m => !!m.probe && !!(m.probe.free || m.probe.path || m.probe.pathFn || m.probe.fixedFn);
+  // 所有模型均可启用观察探针；无预设探针的模型使用独立路线探针。
+  A.hasProbe = () => true;
 
   // 参数变化：拖动中只重绘；松开后若影响控件可见性则重建面板
   A.onParam = function (key, v, live) {
     const st = A.st;
     st.p[key] = v;
+    const free = st.model.probe && st.model.probe.free, index = free ? free.indexOf(key) : -1;
+    if (st.inquiry.routeEnabled && index >= 0) st.p[['__routeX', '__routeY', '__routeZ'][index]] = v;
     A.update();
     if (!live) { if (st.model.params.some(q => q.show)) A.renderPanel(); else A.renderComp(); }
   };
@@ -66,16 +68,16 @@
     if (togs.length) out.push(K.group('模型选项', ...togs.map(t => K.check(t.label, st.p[t.key], v => { st.p[t.key] = v; A.update(); A.renderPanel(); }))));
     if (m.editor) out.push(A.sourceEditor(c));
     if (m.id === 7) out.push(A.bgEditor(c));
-    if (A.hasProbe(m) && (pr.length || ptogs.length || m.probe.free)) {
+    if (A.hasProbe(m)) {
       if (!probeOn) out.push(K.group('探针（观察点）', K.btn('打开探针', () => { st.layers.probe = true; A.update(); A.renderPanel(); A.renderStageBar(); }, 'primary')));
       else {
         const kp = A.keyPoints(c).filter(x => x.p);
         out.push(K.group('探针（观察点）',
-          ...ptogs.map(t => K.check(t.label, st.p[t.key], v => { st.p[t.key] = v; A.update(); A.renderPanel(); })),
+          ...ptogs.map(t => K.check(t.label, st.p[t.key], v => { if (!v && t.key === m.probe?.customKey && A.restoreRouteProbe) A.restoreRouteProbe(false); st.p[t.key] = v; A.update(); A.renderPanel(); })),
           ...pr.map(q => K.slider(Object.assign({}, q, { val: +(+st.p[q.key]).toFixed(3), on: (v, l) => A.onParam(q.key, v, l) }))),
           c.probe && c.probe.free && kp.length ? h('div.row.wrap', null, K.select('把探针放到关键点', [['', '请选择关键点……']].concat(kp.map((x, i) => [i, x.name])), '', v => {
             if (v === '') return;
-            const q = kp[+v].p; c.probe.free.forEach((k, i) => { st.p[k] = +q[i].toFixed(4); }); A.update(); A.renderPanel();
+            const q = EL.ProbeMotion.project(kp[+v].p, st.inquiry); c.probe.free.forEach((k, i) => { st.p[k] = +q[i].toFixed(4); }); A.update(); A.renderPanel();
           })) : null,
           K.slider({ label: '场强矢量的显示比例', min: 0.25, max: 4, step: 0.05, val: st.style.probeVec || 1, tip: '只改变探针处场强箭头与合成作图的显示长度，不改变读数。', on: v => { st.style.probeVec = v; A.update(); } }),
           K.note('也可以在画板中直接拖动探针。')));

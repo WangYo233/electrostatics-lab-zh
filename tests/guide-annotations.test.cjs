@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const root=path.join(__dirname,'..'), c={console,Math,document:{querySelector:()=>null,documentElement:{lang:'zh'},addEventListener(){}},performance:{now:()=>0},setTimeout,window:{addEventListener(){}}};vm.createContext(c);
+const root=path.join(__dirname,'..'), c={console,Math,document:{querySelector:()=>null,documentElement:{lang:'zh'},addEventListener(){}},performance:{now:()=>0},setTimeout,cancelAnimationFrame(){},window:{addEventListener(){}}};vm.createContext(c);
 for(const m of fs.readFileSync(path.join(root,'examples.html'),'utf8').matchAll(/<script src="([^"]+)"/g)){if(/\/(student|teacher|app|layout)\.js$/.test(m[1]))continue;vm.runInContext(fs.readFileSync(path.join(root,m[1]),'utf8'),c,{filename:m[1]});}
 const E=c.window.EL,X=E.EX,W=X.W;W.r={fx:{},setScene:s=>W.r.scene=s};
 let scenes=0;

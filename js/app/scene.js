@@ -122,10 +122,11 @@
     const showLines = st.layers.lines && !hide.has('lines'), showFlow = st.layers.flow && !hide.has('flow');
     if (showLines || showFlow) {
       const lines = A.lines(c), w = sty.lineWidth;
-      if (showLines) for (const L of lines) {
-        sc.lines.push({ pts: L, color: [...C.field, 0.78], width: w, reveal: true });
-        const a = EL.FL.arrowAt(L, 0.45);
-        if (a && a.L > R * 0.08) { const h = Math.min(0.34, R * 0.045); sc.arrows.push({ p: V.addS(a.p, a.d, -h / 2), v: V.mul(a.d, h), color: C.field, width: w, head: h, reveal: true }); }
+      if (showLines) for (const original of lines) {
+        const L = EL.FL.renderLine(original);
+        sc.lines.push({ pts: L, color: [...C.field, 0.78], width: w, reveal: true, preserve: true });
+        const h = Math.min(0.34, R * 0.045), a = EL.FL.arrowAt(L, 0.45, h);
+        if (a && a.L > R * 0.08) sc.arrows.push({ p: a.start, v: a.v, color: C.field, width: w, head: h, reveal: true, revealAt: a.fraction });
       }
       const fm = (A.r && A.r.fx.map) || 'sqrt';
       if (showFlow && !st.anim.on && !A.dragging) sc.flow = A.cached('F' + fm + A.linesKey, () => ({ lines: EL.Flow.speeds(c.F, lines, fm), bound: R }));

@@ -90,7 +90,10 @@
       if (!L.pts || L.pts.length < 2) continue;
       const hw = HW(L.width);
       if (L.dash) { for (const d of dashes(L.pts, L.dash[0], L.dash[1])) for (let i = 1; i < d.length; i++) pushSeg(d[i - 1], d[i], L.color, hw, 0, 0); continue; }
-      const q = decimate(L.pts);
+      let arc = 0;
+      const exact = L.preserve && L.pts.map((p, i) => { if (i) arc += V.dist(L.pts[i - 1], p); return [p, arc]; });
+      if (exact) exact.forEach(p => { p[1] /= arc || 1; });
+      const q = exact || decimate(L.pts);
       for (let i = 1; i < q.length; i++) pushSeg(q[i - 1][0], q[i][0], L.color, hw, L.reveal ? q[i - 1][1] : 0, L.reveal ? q[i][1] : 0);
     }
     for (const S of scene.segs || []) { const hw = HW(S.width); for (const s of S.segs) pushSeg(s[0], s[1], S.color, hw, 0, 0); }
@@ -105,7 +108,7 @@
       const hw = HW(A.width || 2), sh = V.addS(end, d, -hd * 0.8);
       pushSeg(A.p, sh, A.color, hw, A.reveal ? 0.45 : 0, A.reveal ? 0.45 : 0);
       const u = V.perp(d), w = V.cross(d, u), r = hd * 0.38;
-      this.heads.push({ m: M.basis(V.mul(u, r), V.mul(w, r), V.mul(d, hd), V.addS(end, d, -hd)), color: A.color });
+      this.heads.push({ m: M.basis(V.mul(u, r), V.mul(w, r), V.mul(d, hd), V.addS(end, d, -hd)), color: A.color, revealAt: A.reveal ? (A.revealAt == null ? 0.45 : A.revealAt) : 0 });
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, this.lineBuf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);

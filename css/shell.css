@@ -120,3 +120,9 @@ details summary { cursor: pointer; color: var(--ink-2); font-weight: 600; font-s
   .stage { min-height: 58vh; }
   .inspector { max-height: none; }
 }
+
+/* Collapsed grid tracks must not retain the hidden inspector padding. */
+body[data-mode="theory"] .inspector { padding: 0; border: 0; min-width: 0; }
+@media (max-width: 720px) {
+  .filemenu .menu-pop { left: 0; right: auto; max-width: calc(100vw - 24px); min-width: min(260px, calc(100vw - 24px)); }
+}

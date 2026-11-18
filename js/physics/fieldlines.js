@@ -141,14 +141,34 @@
   };
 
   // 线上按弧长比例取箭头位置与方向
-  FL.arrowAt = function (line, frac) {
+  // The displayed polyline and its arrows must use exactly the same segments.
+  FL.renderLine = function (line) {
+    if (line.length < 4) return line;
+    const out = [line[0]];
+    let last = line[0];
+    for (let i = 1; i < line.length - 1; i++) {
+      const a = V.sub(line[i], last), b = V.sub(line[i + 1], line[i]), la = V.len(a), lb = V.len(b);
+      if (la > 0 && lb > 0 && V.dot(a, b) / (la * lb) < 0.9995) { out.push(line[i]); last = line[i]; }
+    }
+    out.push(line[line.length - 1]);
+    return out;
+  };
+
+  FL.arrowAt = function (line, frac, size) {
     let L = 0;
     for (let i = 1; i < line.length; i++) L += V.dist(line[i - 1], line[i]);
-    let target = L * frac, acc = 0;
+    const target = L * U.clamp(frac, 0, 1);
+    let acc = 0;
     for (let i = 1; i < line.length; i++) {
-      const s = V.dist(line[i - 1], line[i]);
-      if (acc + s >= target && s > 0) return { p: V.lerp(line[i - 1], line[i], (target - acc) / s), d: V.norm(V.sub(line[i], line[i - 1])), L };
-      acc += s;
+      const span = V.dist(line[i - 1], line[i]);
+      if (acc + span >= target && span > 1e-12) {
+        const d = V.mul(V.sub(line[i], line[i - 1]), 1 / span), local = U.clamp(target - acc, 0, span);
+        // Keep the entire arrow on one actual rendered segment, even at a sharp bend.
+        const length = Math.min(size || span * 0.8, span * 0.86);
+        const from = U.clamp(local - length / 2, span * 0.07, span * 0.93 - length);
+        return { p: V.addS(line[i - 1], d, local), d, L, start: V.addS(line[i - 1], d, from), v: V.mul(d, length), segment: i - 1, fraction: U.clamp(frac, 0, 1) };
+      }
+      acc += span;
     }
     return null;
   };

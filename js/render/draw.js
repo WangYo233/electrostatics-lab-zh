@@ -35,7 +35,7 @@
     gl.depthMask(true);
     for (const o of meshes) if (o.mesh.count && (o.color[3] == null || o.color[3] >= 0.999)) drawMesh(o.mesh, I, o.color, o.lit);
     for (const s of sc.spheres || []) drawMesh(this.sphere, M.basis([s.r, 0, 0], [0, s.r, 0], [0, 0, s.r], s.p), s.color, true, 0.8);
-    for (const h of this.heads || []) drawMesh(this.cone, h.m, h.color, true, 0.3);
+    for (const h of this.heads || []) if (!h.revealAt || 1 - Math.pow(1 - this.reveal, 3) >= h.revealAt) drawMesh(this.cone, h.m, h.color, true, 0.3);
     gl.disableVertexAttribArray(mp.a.aP); gl.disableVertexAttribArray(mp.a.aN);
     // 线
     if (this.lineCount) {
@@ -111,6 +111,12 @@
     this.labelPreferences.set(key, Object.assign({}, this.labelPreferences.get(key), { visible: !!visible }));
     this.draw();
   };
+  R.moveLabel = function (key, dx, dy) {
+    if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
+    const w = this.cam && this.cam.w || 1000, h = this.cam && this.cam.h || 1000;
+    this.labelPreferences.set(key, Object.assign({}, this.labelPreferences.get(key), { dx: Math.max(-w, Math.min(w, dx)), dy: Math.max(-h, Math.min(h, dy)) }));
+    this.draw();
+  };
   R.resetLabelOffsets = function (key) {
     for (const [id, state] of this.labelPreferences) if (key == null || key === id) { delete state.dx; delete state.dy; }
     for (const s of this.labelPool || []) if (key == null || s.dataset.labelKey === key) s._autoKey = null;
@@ -136,6 +142,16 @@
     };
     if (key != null) {
       add(en ? 'Hide this label' : '隐藏此标注', () => this.setLabelVisible(key, false));
+      const label = (this.labelPool || []).find(s => s.dataset.labelKey === key), state = this.labelPreferences.get(key) || {};
+      const values = { dx: state.dx == null ? label?._dx || 0 : state.dx, dy: state.dy == null ? label?._dy || 0 : state.dy };
+      const row = document.createElement('div'); row.className = 'annotation-position';
+      for (const [axis, text] of [['dx', en ? 'Horizontal' : '水平'], ['dy', en ? 'Vertical' : '垂直']]) {
+        const field = document.createElement('label'), name = document.createElement('span'), input = document.createElement('input');
+        name.textContent = text; input.type = 'number'; input.step = '2'; input.value = Math.round(values[axis]); input.setAttribute('aria-label', text);
+        input.addEventListener('change', () => { const n = Number(input.value); if (!Number.isFinite(n)) { input.value = Math.round(values[axis]); return; } values[axis] = n; this.moveLabel(key, values.dx, values.dy); });
+        field.append(name, input); row.append(field);
+      }
+      menu.append(row);
       add(en ? 'Reset this label position' : '重置此标注位置', () => this.resetLabelOffsets(key));
     }
     add(en ? 'Restore default labels' : '恢复默认标注', () => this.resetLabels());
@@ -148,6 +164,14 @@
     let press = null, timer = null;
     const end = () => { clearTimeout(timer); timer = null; press = null; span.classList.remove('dragging'); this.labelDrag = null; };
     span.addEventListener('contextmenu', e => this.labelMenu(e, span.dataset.labelKey));
+    span.tabIndex = 0;
+    span.addEventListener('keydown', e => {
+      const directions = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }, d = directions[e.key];
+      if (!d) return;
+      e.preventDefault(); e.stopPropagation();
+      const state = this.labelPreferences.get(span.dataset.labelKey) || {}, step = e.shiftKey ? 10 : 2;
+      this.moveLabel(span.dataset.labelKey, (state.dx == null ? span._dx || 0 : state.dx) + d[0] * step, (state.dy == null ? span._dy || 0 : state.dy) + d[1] * step);
+    });
     span.addEventListener('pointerdown', e => {
       if (e.button !== 0) return;
       e.preventDefault(); e.stopPropagation();
@@ -160,11 +184,8 @@
       if (!press) return;
       if (!press.active) { if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > 7) end(); return; }
       e.preventDefault(); e.stopPropagation();
-      let dx = press.dx + e.clientX - press.x, dy = press.dy + e.clientY - press.y;
-      const distance = Math.hypot(dx, dy), limit = 110;
-      if (distance > limit) { dx *= limit / distance; dy *= limit / distance; }
-      this.labelPreferences.set(press.key, Object.assign({}, this.labelPreferences.get(press.key), { dx, dy }));
-      this.draw();
+      const dx = press.dx + e.clientX - press.x, dy = press.dy + e.clientY - press.y;
+      this.moveLabel(press.key, dx, dy);
     });
     span.addEventListener('pointerup', end); span.addEventListener('pointercancel', end); span.addEventListener('lostpointercapture', end);
   };
