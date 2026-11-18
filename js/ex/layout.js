@@ -13,9 +13,9 @@
     const button = (id, icon, label, action) => U.h('button', { id, type: 'button', title: label, 'aria-label': label, onclick: action }, icon);
     const controls = U.h('div.ex-layout-tools', { 'aria-label': L('画板工具', 'Canvas tools') });
     const group = U.h('div.ex-panel-tools', { role: 'toolbar', 'aria-label': L('面板布局', 'Panel layout') });
-    const left = button('exToggleLeft', '◧', '', () => { panels.left = !panels.left; schedule(); save(); });
-    const right = button('exToggleRight', '◨', '', () => { panels.right = !panels.right; schedule(); save(); });
-    const guide = button('exToggleGuide', '▤', '', () => { panels.guide = view.classList.contains('model-only') ? false : !panels.guide; view.classList.remove('model-only'); schedule(); save(); });
+    const left = button('exToggleLeft', L('题目列表', 'Problem list'), '', () => { panels.left = !panels.left; schedule(); save(); });
+    const right = button('exToggleRight', L('题目内容', 'Problem details'), '', () => { panels.right = !panels.right; schedule(); save(); });
+    const guide = button('exToggleGuide', L('引导', 'Guide'), '', () => { panels.guide = view.classList.contains('model-only') ? false : !panels.guide; view.classList.remove('model-only'); schedule(); save(); });
     const only = button('exModelOnly', '▣', L('仅模型全屏', 'Model-only fullscreen'), async () => {
       if (view.classList.contains('model-only')) { view.classList.remove('model-only'); if (document.fullscreenElement) await document.exitFullscreen(); schedule(); return; }
       view.classList.add('model-only'); schedule();
@@ -73,7 +73,7 @@
     }
     function sizeHandle(which) {
       const el = which === 'guide' ? cap : stage;
-      const handle = U.h('div.' + which + '-corner', { tabindex: '0', role: 'separator', title: L('长按调整大小', 'Hold to resize'), 'aria-label': L('长按调整大小', 'Hold to resize') }, '↔');
+      const handle = U.h('div.' + which + '-corner', { tabindex: '0', role: 'separator', title: L('拖动调整大小', 'Drag to resize'), 'aria-label': L('拖动调整大小', 'Drag to resize') }, '');
       const resize = (dx, dy, initial) => {
         const w = Math.max(180, view.clientWidth - 24), h = Math.max(180, view.clientHeight - controls.offsetHeight - 24);
         panels[which + 'Width'] = clamp(initial.width + dx, 180, w);
@@ -84,7 +84,7 @@
         }
         schedule();
       };
-      handle.addEventListener('pointerdown', e => { const start = { x: e.clientX, y: e.clientY, width: el.clientWidth, height: el.clientHeight }; drag(e, ev => resize(ev.clientX - start.x, ev.clientY - start.y, start), null, true); });
+      handle.addEventListener('pointerdown', e => { const start = { x: e.clientX, y: e.clientY, width: el.clientWidth, height: el.clientHeight }; drag(e, ev => resize(ev.clientX - start.x, ev.clientY - start.y, start)); });
       handle.addEventListener('keydown', e => { if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) return; e.preventDefault(); resize(e.key === 'ArrowRight' ? 20 : e.key === 'ArrowLeft' ? -20 : 0, e.key === 'ArrowDown' ? 20 : e.key === 'ArrowUp' ? -20 : 0, { width: el.clientWidth, height: el.clientHeight }); save(); });
       return handle;
     }
@@ -95,15 +95,15 @@
         if (nav) { const prev = nav.querySelector('button'); prev.disabled = EL.EX.S.step === 0; prev.title = L('上一步', 'Previous step'); prev.setAttribute('aria-label', prev.title); }
         const body = U.h('div.guide-body'); children.forEach(node => { if (node !== nav) body.append(node); });
         const grip = U.h('div.guide-grip', { tabindex: '0', title: L('拖动', 'Drag') }, U.h('span', null, L('⠿ 引导探究', '⠿ Guided inquiry')));
-        const fold = button('', '−', L('收起引导', 'Hide guide'), () => { panels.guide = true; schedule(); save(); }); fold.className = 'guide-fold';
-        grip.append(sizeHandle('guide'), fold);
+        const fold = button('', L('收起', 'Collapse'), L('收起引导', 'Hide guide'), () => { panels.guide = true; schedule(); save(); }); fold.className = 'guide-fold';
+        grip.append(fold);
         grip.addEventListener('pointerdown', e => {
           if (e.target.closest('button,.guide-corner')) return;
           let dock = layout.dock;
           drag(e, ev => { const r = view.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width, y = (ev.clientY - r.top) / r.height; dock = [['left',x],['right',1-x],['top',y],['bottom',1-y]].sort((a,b)=>a[1]-b[1])[0][0]; view.dataset.guidePreview = dock; }, () => { layout.dock = dock; panels.guideWidth = panels.guideHeight = 0; delete view.dataset.guidePreview; schedule(); });
         });
         grip.addEventListener('keydown', e => { if (e.target !== grip) return; const dirs = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'top', ArrowDown:'bottom' }; if (dirs[e.key]) { e.preventDefault(); layout.dock = dirs[e.key]; panels.guideWidth = panels.guideHeight = 0; schedule(); save(); } });
-        cap.replaceChildren(grip, body, ...(nav ? [nav] : []));
+        cap.replaceChildren(grip, body, ...(nav ? [nav] : []), sizeHandle('guide'));
       }
       apply();
     }

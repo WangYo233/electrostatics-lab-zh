@@ -98,13 +98,16 @@ body.ex .ex-work > .view.has-guide > #caption { grid-area: guide; display: grid;
 .guide-grip { display: flex; align-items: center; gap: 8px; padding: 6px 10px; margin: 0; background: #172338; color: #f2f6fc; border-bottom: 1px solid #62738b; font-size: 12px; cursor: grab; touch-action: none; user-select: none; }
 .caption[data-theme=light] .guide-grip { color: #172033; background: #f1f4f8; border-color: #aeb9c8; }
 .guide-grip > span { flex: 1; min-width: 0; }
-.guide-grip button, .guide-corner { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border: 1px solid currentColor; border-radius: 6px; color: inherit; background: transparent; font-size: 18px; }
-body.ex #caption > .cap-nav:last-child { position: static; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 8px 12px; border-top: 1px solid #62738b; background: #172338; }
-body.ex #caption[data-theme=light] > .cap-nav:last-child { background: #f1f4f8; border-color: #aeb9c8; }
+.guide-grip button { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border: 1px solid currentColor; border-radius: 6px; color: inherit; background: transparent; font-size: 18px; }
+body.ex #caption > .cap-nav { position: static; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 8px 46px 8px 12px; border-top: 1px solid #62738b; background: #172338; }
+body.ex #caption[data-theme=light] > .cap-nav { background: #f1f4f8; border-color: #aeb9c8; }
 body.ex .caption .btn { min-height: 32px; padding: 5px 10px; line-height: 1.35; white-space: normal; }
 .ex .caption .cap-h { flex-wrap: wrap; }
 .ex .cap-dots { flex-wrap: wrap; min-width: 0; }
 .ex .cap-curve-wrap { height: 146px; }
+.guide-grip .guide-fold { width: auto; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+.guide-corner { position: absolute; right: 4px; bottom: 4px; display: grid; place-items: center; width: 26px; height: 26px; color: #b7c5db; background: #172338; border: 0; border-radius: 3px; font-size: 18px; }
+.caption[data-theme=light] .guide-corner { color: #52627a; background: #f1f4f8; }
 .model-corner { position: absolute; right: 5px; bottom: 5px; display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #aeb9c8; border-radius: 5px; color: #f2f6fc; background: #172338; z-index: 7; }
 .stage[data-theme=light] .model-corner { color: #172033; background: #f1f4f8; }
 .model-corner, .guide-corner { touch-action: none; user-select: none; cursor: nwse-resize; }
@@ -130,3 +133,5 @@ body.ex .ex-work.left-off > .ex-left, body.ex .ex-work.right-off > .ex-right, .e
  body.ex .ex-work > .view.guide-collapsed[data-guide-dock], body.ex .ex-work > .view.model-only[data-guide-dock] { grid-template-areas: 'layout' 'model'; grid-template-rows: var(--ex-toolbar-height, 120px) minmax(260px, 1fr); }
  body.ex .ex-work > .view:fullscreen { min-height: 100vh; }
 }
+
+.model-corner::after, .guide-corner::after { content: ""; width: 12px; height: 12px; background: repeating-linear-gradient(135deg, transparent 0 3px, currentColor 3px 4px); clip-path: polygon(100% 0, 100% 100%, 0 100%); }

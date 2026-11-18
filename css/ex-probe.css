@@ -1,7 +1,11 @@
 /* Grouped tools stay outside the model and wrap without covering it. */
 body.ex .ex-layout-tools { grid-area: layout; align-self: start; display: flex; flex-wrap: wrap; align-items: center; align-content: start; gap: 6px 12px; min-width: 0; padding: 0; }
 .ex-panel-tools, .ex-view-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-width: 0; }
-.ex-panel-tools { flex: 1 1 170px; }
+.ex-panel-tools { flex: 1 1 100%; }
+.ex-panel-tools #exToggleLeft, .ex-panel-tools #exToggleRight, .ex-panel-tools #exToggleGuide, .ex-panel-tools #exProbeRoute { width: auto; min-height: 34px; padding: 6px 10px; font-size: 13px; }
+.ex-panel-tools button[aria-pressed]::before { content: ""; width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 2px; }
+.ex-panel-tools button[aria-pressed=true]::before { background: currentColor; }
+.ex-panel-tools button[aria-pressed] { display: inline-flex; gap: 6px; }
 .ex-view-tools { flex: 0 1 auto; }
 .ex-layout-spacer { flex: 1; }
 .ex-layout-tools button { display: inline-grid; place-items: center; flex: none; width: 32px; min-height: 32px; padding: 4px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: var(--surface); font: inherit; font-size: 16px; line-height: 1.2; cursor: pointer; }
