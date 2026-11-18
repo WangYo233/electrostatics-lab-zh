@@ -18,15 +18,24 @@
     T.d = pb ? JSON.parse(JSON.stringify(pb)) : blank(key);
     if (pb) { T.d.model = X.modelOf(pb); T.d.kind = X.kindOf(pb); }
     if (pb && !String(pb.id).startsWith('my-')) { T.d.id = 'my-' + Date.now().toString(36); T.d.title = pb.title + '（改编）'; delete T.d.src; }
-    T.step = pb ? 3 : key ? 1 : 0; T.focus = null; T.render();
+    T.step = pb ? 3 : 0; T.focus = null; T.render();
   };
   T.sol = () => X.solve(T.d);
+  T.ready = function (through = 4) {
+    const status = X.problemStatus(T.d), first = status.findIndex((error, i) => i <= through && error);
+    if (first < 0) return true;
+    U.toast(status[first]); T.step = first; T.render(); return false;
+  };
+  T.go = function (step) {
+    if (step > T.step && !T.ready(step - 1)) return;
+    T.step = step; T.render();
+  };
   T.render = function () {
-    const d = T.d, sol = T.sol();
-    U.$('#tSteps').replaceChildren(...STEPS.map((s, i) => h('li', { class: (i === T.step ? 'on' : '') + (i < T.step ? ' done' : '') }, h('button', { type: 'button', onclick: () => { T.step = i; T.render(); } }, h('span.n', null, i + 1), s))));
+    const d = T.d, sol = T.sol(), status = X.problemStatus(d, sol);
+    U.$('#tSteps').replaceChildren(...STEPS.map((s, i) => h('li', { class: (i === T.step ? 'on' : '') + (i < T.step && !status[i] ? ' done' : '') }, h('button', { type: 'button', 'aria-current': i === T.step ? 'step' : null, onclick: () => T.go(i) }, h('span.n', null, i + 1), s))));
     const f = [T.f0, T.f1, T.f2, T.f3, T.f4][T.step];
     U.$('#tForm').replaceChildren(h('h2', null, STEPS[T.step]), h('p.t-model', null, '当前模型：' + X.modelName(d)), ...f(d, sol).filter(Boolean), h('div.btns.tnav', null,
-      T.step > 0 ? K.btn('‹ 上一步', () => { T.step--; T.render(); }) : null, T.step < 4 ? K.btn('下一步 ›', () => { T.step++; T.render(); }, 'primary') : null));
+      T.step > 0 ? K.btn('‹ 上一步', () => { T.go(T.step - 1); }) : null, T.step < 4 ? K.btn('下一步 ›', () => { T.go(T.step + 1); }, 'primary') : null));
     T.assist(d, sol);
     W.show(d, sol, T.focus || null);
   };
@@ -114,8 +123,8 @@
     const cand = X.candidates(g).filter(c => !used.includes(JSON.stringify(c.def)));
     let sel = 0; const xyz = [0, 0, 0];
     return [
-      sug.length ? h('div.sug', null, h('h4', null, '助手推荐的关键点'), ...sug.filter(s => !used.includes(JSON.stringify(s.c.def))).slice(0, 4).map(s => h('div.row.wrap', null, h('span', null, s.c.text), h('em', null, s.why), K.btn('添加此点', () => add(s.c.def), 'mini primary')))) : null,
-      rows.length ? h('table.src', null, h('thead', null, h('tr', null, h('th', null, '名称'), h('th', null, '位置'), h('th'))), h('tbody', null, rows)) : K.note('还没有添加关键点。'),
+      sug.length ? h('div.sug', null, h('h4', null, '助手推荐的关键点'), ...sug.filter(s => !used.includes(JSON.stringify(s.c.def))).slice(0, 4).map(s => h('div.row.wrap', null, h('span', null, s.c.text + ' (' + freeName(d) + ')'), h('em', null, s.why), K.btn('添加此点', () => add(s.c.def), 'mini primary')))) : null,
+      rows.length ? h('table.src', null, h('thead', null, h('tr', null, h('th', null, '名称'), h('th', null, '位置'), h('th'))), h('tbody', null, rows)) : K.note(X.qtypesFor(d).some(t => !X.qtype(t).need.length) ? "总能量、电荷对数或边界条件问题不需要观察点；若要询问某点的物理量，请在此添加关键点。" : "还没有添加关键点。"),
       cand.length ? h('div.row.wrap', null, K.select('', cand.map((c, i) => [i, c.text]), 0, v => { sel = +v; }), K.btn('添加关键点', () => cand[sel] && add(cand[sel].def), 'mini')) : null,
       h('details.tip', { open: X.kindOf(d) === 'field' }, h('summary', null, '按坐标添加关键点'), h('div.row.wrap', null, ...['x', 'y', 'z'].map((k, i) => h('label.mini', null, k, K.cell(0, 0.05, v => { xyz[i] = v; }, 3.4))),
         K.btn('添加此点', () => add({ t: 'xyz', p: xyz.slice() }), 'mini')), K.note('坐标以 ' + unit + ' 为单位，原点在' + (unit === 'a' ? '模型的中心' : '坐标原点 O') + '。'))];
@@ -155,16 +164,17 @@
   T.f4 = function (d, sol) {
     const auto = X.stem(d, sol.R);
     return [h('label', { for: 'tTitle' }, '标题'), h('input.cell.wide#tTitle', { type: 'text', value: d.title, oninput: e => { d.title = e.target.value; } }),
-      h('label', { for: 'tStem' }, '题干（留空时使用自动生成的题干）'), h('textarea.wide#tStem', { rows: 5, placeholder: auto, value: d.stem || '', oninput: e => { d.stem = e.target.value; } }),
+      h('label', { for: 'tStem' }, '题干（留空时使用自动生成的题干）'), h('textarea.wide#tStem', { rows: 5, placeholder: auto, oninput: e => { d.stem = e.target.value; } }, d.stem || ''),
       h('label', { for: 'tNote' }, '补充说明'), h('input.cell.wide#tNote', { type: 'text', value: d.note || '', oninput: e => { d.note = e.target.value; } }),
-      h('div.btns', null, K.btn('保存题目', () => T.save(), 'primary'), K.btn('预览学生版', () => { T.save(true); X.setMode('student'); X.open(JSON.parse(JSON.stringify(T.d))); })),
-      h('div.btns', null, K.btn('导出学生版', () => X.print(d, false)), K.btn('导出教师版', () => X.print(d, true)), K.btn('导出 JSON', () => U.download('题目添加_' + safe(d.title) + '.json', JSON.stringify(d, null, 1), 'application/json')))];
+      h('div.btns', null, K.btn('保存题目', () => T.save(), 'primary'), K.btn('预览学生版', () => { if (!T.save(true)) return; X.setMode('student'); X.open(JSON.parse(JSON.stringify(T.d))); })),
+      h('div.btns', null, K.btn('导出学生版', () => { if (T.ready()) X.print(d, false); }), K.btn('导出教师版', () => { if (T.ready()) X.print(d, true); }), K.btn('导出 JSON', () => { if (T.ready()) U.download('题目添加_' + safe(d.title) + '.json', JSON.stringify(d, null, 1), 'application/json'); }))];
   };
   T.save = function (quiet) {
+    if (!T.ready()) return false;
     const mine = U.store.get('ex:mine', []), i = mine.findIndex(x => x.id === T.d.id), c = JSON.parse(JSON.stringify(T.d));
     c.model = X.modelOf(c); c.kind = X.kindOf(c);
     if (i >= 0) mine[i] = c; else mine.push(c);
-    U.store.set('ex:mine', mine); X.renderList(); if (!quiet) U.toast('已保存到“我的题目”。');
+    U.store.set('ex:mine', mine); X.renderList(); if (!quiet) U.toast('已保存到“我的题目”。'); return true;
   };
 
   // 助手：诊断、下一步建议、各问答案与干扰项
@@ -172,12 +182,12 @@
     const k = X.kindOf(d), tips = [];
     const nQ = k === 'field' ? 1 : sol.R.sources.length;
     if (!nQ) tips.push({ k: 'bad', t: '还没有放置电荷量不为零的点电荷。' });
-    if (T.step >= 2 && !Object.keys(d.pts).length && k !== 'disk') tips.push({ k: 'info', t: '请添加一个观察点，或者采用助手推荐的点。' });
+    if (T.step >= 2 && X.problemStatus(d, sol)[2]) tips.push({ k: 'info', t: '请添加一个观察点，或者采用助手推荐的点。' });
     if (T.step >= 3 && !d.qs.length) tips.push({ k: 'info', t: '请至少添加一个问题。' });
     const diag = X.diagnose(d, sol).concat(tips);
     const ans = sol.ans.map((o, i) => o.ok ? h('div.ta', null, h('b', null, '(' + (i + 1) + ') ' + X.qtype(o.q.t).name),
       h('p', { html: (o.options ? X.optLetter(o.options, X.rightOf(o)) + '. ' : '') + U.rich(o.answer) }),
-      o.distractors && o.distractors.length ? h('ul', null, o.distractors.map(x => h('li', { html: (o.options ? X.optLetter(o.options, x.v) + '. ' : '') + U.rich(x.v) + ' <span class="muted">— ' + U.esc(x.why) + '</span>' }))) : null) : null);
+      o.distractors && o.distractors.length ? h('ul', null, o.distractors.slice().sort((a, b) => (o.options || []).indexOf(a.v) - (o.options || []).indexOf(b.v)).map(x => h('li', { html: (o.options ? X.optLetter(o.options, x.v) + '. ' : '') + U.rich(x.v) + ' <span class="muted">— ' + U.esc(x.why) + '</span>' }))) : null) : null);
     U.$('#tAssist').replaceChildren(...[h('h3', null, '出题助手'), h('ul.diag', null, diag.map(x => h('li', { class: x.k, html: U.rich(x.t) }))),
       sol.ans.length ? h('h4', null, '答案与干扰项') : null, ...ans].filter(Boolean));
   };

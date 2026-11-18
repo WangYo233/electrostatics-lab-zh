@@ -75,14 +75,14 @@
     U.$('#btnZin').addEventListener('click', () => { W.r.cam.zoomAt(1 / 1.3, W.r.cam.w / 2, W.r.cam.h / 2); W.r.draw(); });
     U.$('#btnZout').addEventListener('click', () => { W.r.cam.zoomAt(1.3, W.r.cam.w / 2, W.r.cam.h / 2); W.r.draw(); });
     U.$('#btnFull').addEventListener('click', () => { const el = U.$('#stage').closest('.view'); document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen && el.requestFullscreen(); });
-    U.$('#btnNew').addEventListener('click', () => { X.T.start(null, X.S.pb ? X.itemKey(X.S.pb) : X.S.empty ? (X.firstItem(X.S.empty) || {}).key : null); X.setMode('teacher'); });
+    U.$('#btnNew').addEventListener('click', () => { X.T.start(); X.setMode('teacher'); });
     U.$('#btnEdit').addEventListener('click', () => { if (!X.S.pb) return U.toast('请先选择一道题。'); X.T.start(X.S.pb); X.setMode('teacher'); });
     U.$('#btnImport').addEventListener('click', () => U.$('#importFile').click());
     U.$('#importFile').addEventListener('change', e => {
       const f = e.target.files[0]; if (!f) return;
       f.text().then(t => {
         try {
-          const pb = JSON.parse(t); if (!pb || !X.valid(pb)) throw new Error('文件中没有可识别的模型');
+          const pb = JSON.parse(t); if (!pb || !X.valid(pb)) throw new Error('题目缺少必要内容或计算条件无效，请在题目添加中检查后重新导出');
           pb.id = 'my-' + Date.now().toString(36); pb.model = X.modelOf(pb); pb.kind = X.kindOf(pb); pb.pts = pb.pts || {}; pb.qs = pb.qs || [];
           const mine = U.store.get('ex:mine', []); mine.push(pb); U.store.set('ex:mine', mine); X.setMode('student'); X.open(pb); U.toast('已导入到“我的题目”。');
         } catch (er) { U.toast('导入失败：' + er.message); }

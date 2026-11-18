@@ -96,7 +96,8 @@
       if (q.t !== 'trend' && (ea || eb)) return { q, ok: false, err: (ea ? q.a : q.b) + ' 点与场源电荷重合，该点的电势未定义。' };
       if (q.t === 'trend' && ea && eb) return { q, ok: false, err: '两个端点都与场源电荷重合，不能讨论电势的变化。' };
       const va = ea ? NaN : Vat(src, a), vb = eb ? NaN : Vat(src, b);
-      o.va = va; o.vb = vb; o.endSrc = ea ? q.a : eb ? q.b : null;
+      o.va = va; o.vb = vb;
+      if (q.t !== 'trend') { o.vaTerms = src.map(source => source.q / V.dist(a, source.p)); o.vbTerms = src.map(source => source.q / V.dist(b, source.p)); } o.endSrc = ea ? q.a : eb ? q.b : null;
       if (o.endSrc) { const ep = ea ? a : b, s0 = src.find(s => V.dist(ep, s.p) < 1e-9); o.endQ = s0 ? s0.q : 0; }
       if (q.t === 'Vcmp') X.cmpAnswer(o, q, va, vb);
       if (q.t === 'W') {
@@ -120,8 +121,9 @@
   };
   X.trendAnswer = function (o, vs) {
     const dv = vs.slice(1).map((v, i) => v - vs[i]), eps = 1e-10, up = dv.every(x => x > -eps), dn = dv.every(x => x < eps);
-    const flat = dv.every(x => Math.abs(x) < eps), turns = dv.reduce((n, x, i) => i && Math.sign(x) !== Math.sign(dv[i - 1]) && Math.abs(x) > eps ? n + 1 : n, 0);
-    o.answer = flat ? '保持不变' : up ? '一直升高' : dn ? '一直降低' : turns === 1 ? (dv[0] > 0 ? '先升高后降低' : '先降低后升高') : '多次起伏';
+    const flat = dv.every(x => Math.abs(x) < eps);
+    const signs = dv.filter(x => Math.abs(x) > eps).map(Math.sign).filter((x, i, all) => !i || x !== all[i - 1]), turns = Math.max(0, signs.length - 1);
+    o.answer = flat ? '保持不变' : up ? '一直升高' : dn ? '一直降低' : turns === 1 ? (signs[0] > 0 ? '先升高后降低' : '先降低后升高') : signs.map((x, i) => (i ? '再' : '先') + (x > 0 ? '升高' : '降低')).join('，');
     o.options = ['一直升高', '一直降低', '先升高后降低', '先降低后升高'];
     // 选项固定为 A～D 四个：答案不在常规四项中时，替换掉“先降低后升高”
     if (!o.options.includes(o.answer)) o.options[3] = o.answer;
@@ -174,6 +176,8 @@
       }
       const o = X.answer(pb, R, q);
       if (X.exactAnswer) X.exactAnswer(pb, R, o);
+      o.units = R.units;
+      if (o.ok && R.analytic && q.t !== 'trend' && X.analyticSteps) o.expl = X.analyticSteps(pb, R, o);
       X.fieldChoices(R, o);
       if (o.ok && q.t === 'trend') o.expl = X.pathSteps(pb, R, o, 0.3).map(st => ({ t: st.title + ': ' + st.text, tex: st.tex, rows: st.rows }));
       return o;
@@ -216,21 +220,21 @@
   };
   // 解析：短句 + 公式（每行一条）
   X.explain = function (o) {
-    const q = o.q, L = [];
+    const q = o.q, L = [], units = o.units || {};
     if (!o.ok) return [{ t: o.err }];
     if (o.expl) return o.expl;
     if (q.t === 'E' || q.t === 'Ezero' || q.t === 'angle') {
       for (const s of o.plan) if (s.id !== 'list' && s.id !== 'group') L.push({ t: s.title + '：' + s.text, tex: s.tex, rows: s.rows });
-      if (q.t === 'angle') L.push({ t: '取 ' + q.a + '→' + q.b + ' 的位置差矢量为 u。在已求出合场强后，由数量积求得与此方向的夹角为 ' + o.answer + '。', tex: String.raw`\vec u=\vec r_{${q.b}}-\vec r_{${q.a}},\qquad\cos\alpha=\frac{\vec E\cdot\vec u}{|\vec E||\vec u|}=${numTex(Math.cos(o.value * Math.PI / 180))},\qquad\alpha=${f4(o.value)}^\circ` });
+      if (q.t === 'angle') L.push({ t: '取 ' + q.a + '→' + q.b + ' 的位置差矢量为 u。在已求出合场强后，由数量积求得与此方向的夹角为 ' + o.answer + '。', tex: String.raw`\vec u=\vec r_{${q.b}}-\vec r_{${q.a}},\qquad\cos\alpha=\frac{\vec E\cdot\vec u}{|\vec E||\vec u|}${VA.valueEq(Math.cos(o.value * Math.PI / 180))},\qquad\alpha${VA.valueEq(o.value)}^\circ` });
     } else if (q.t === 'V') {
-      L.push({ t: '电势是标量。' + q.at + ' 点的电势等于各场源电荷单独在该点产生的电势的代数和，正电荷的贡献为正，负电荷的贡献为负。', tex:String.raw`\varphi_{${q.at}}=\sum_i\frac{kq_i}{r_i}=` + o.terms.map(x => (x.q < 0 ? '-' : '+') + numTex(Math.abs(x.v))).join('').replace(/^\+/, '') + '=' + (o.exactTex || numTex(o.value)) });
+      L.push({ t: '电势是标量。' + q.at + ' 点的电势等于各场源电荷单独在该点产生的电势的代数和，正电荷的贡献为正，负电荷的贡献为负。', tex:String.raw`\varphi_{${q.at}}=\sum_i\frac{kq_i}{r_i}${VA.valueEq(o.value, units.V, o.terms.map(x => x.v))}` });
     } else if (q.t === 'Vcmp') {
-      L.push({ t: '分别计算 ' + q.a + '、' + q.b + ' 两点的电势。', tex: String.raw`\varphi_{${q.a}}=${numTex(o.va)},\quad\varphi_{${q.b}}=${numTex(o.vb)}` }, { t: '所以 ' + o.answer + '。' });
+      L.push({ t: '分别计算 ' + q.a + '、' + q.b + ' 两点的电势。', tex: String.raw`\varphi_{${q.a}}${VA.valueEq(o.va, units.V, o.vaTerms)},\quad\varphi_{${q.b}}${VA.valueEq(o.vb, units.V, o.vbTerms)}` }, { t: '所以 ' + o.answer + '。' });
     } else if (q.t === 'W') {
-      L.push({ t: '静电力做的功等于试探电荷的电荷量与起点、终点间电势差的乘积，即 W = q(φ_' + q.a + ' − φ_' + q.b + ')。', tex:String.raw`W=q(\varphi_{${q.a}}-\varphi_{${q.b}})=${numTex(q.q0 || 1)}\times(${numTex(o.va)}-(${numTex(o.vb)}))=${o.exactTex || numTex(o.value)}` });
+      L.push({ t: '静电力做的功等于试探电荷的电荷量与起点、终点间电势差的乘积，即 W = q(φ_' + q.a + ' − φ_' + q.b + ')。', tex:String.raw`W=q(\varphi_{${q.a}}-\varphi_{${q.b}})${VA.valueEq(o.value, units.W, o.vaTerms?.map(x => x * (q.q0 || 1)).concat(o.vbTerms.map(x => -x * (q.q0 || 1))))}` });
     } else if (q.t === 'trend') {
       L.push({ t: '设合场强沿路径方向的分量为 E_∥。E_∥ 大于零时，沿路径电势降低；E_∥ 小于零时，沿路径电势升高。点击“引导探究”，拖动路径上的点 X，观察合场强与路径方向的夹角。' },
-        { t: '所以从 ' + q.a + ' 点到 ' + q.b + ' 点，电势' + (o.answer === '多次起伏' ? '多次起伏变化' : o.answer) + '。' + (o.endSrc ? '端点 ' + o.endSrc + ' 处是' + (o.endQ > 0 ? '正' : '负') + '电荷，越靠近它，电势越趋于' + (o.endQ > 0 ? '正' : '负') + '无穷大。' : '') });
+        { t: '所以从 ' + q.a + ' 点到 ' + q.b + ' 点，电势' + o.answer + '。' + (o.endSrc ? '端点 ' + o.endSrc + ' 处是' + (o.endQ > 0 ? '正' : '负') + '电荷，越靠近它，电势越趋于' + (o.endQ > 0 ? '正' : '负') + '无穷大。' : '') });
     }
     return L;
   };

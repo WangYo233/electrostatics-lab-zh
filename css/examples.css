@@ -135,3 +135,50 @@ body.ex .ex-work.left-off > .ex-left, body.ex .ex-work.right-off > .ex-right, .e
 }
 
 .model-corner::after, .guide-corner::after { content: ""; width: 12px; height: 12px; background: repeating-linear-gradient(135deg, transparent 0 3px, currentColor 3px 4px); clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+
+@media (min-width: 721px) and (max-width: 1100px) {
+ body.ex .ex-work.guide-active { overflow: auto; grid-template-rows: minmax(0, 1fr); }
+ body.ex .ex-work.guide-active.left-off:not(.right-off) { grid-template-columns: minmax(0, 1fr) minmax(250px, 34%); }
+ body.ex .ex-work.guide-active > .ex-right { grid-column: auto; max-height: none; min-width: 0; }
+ body.ex .ex-work.guide-active > .view.has-guide { min-height: 540px; }
+ body.ex .ex-work.guide-active > .view.has-guide[data-guide-dock=bottom],
+ body.ex .ex-work.guide-active > .view.has-guide[data-guide-dock=top] { min-height: 800px; grid-template-rows: var(--ex-toolbar-height, 140px) minmax(280px, 1fr) minmax(320px, var(--guide-extent, 380px)); }
+ body.ex .ex-work.guide-active > .view.has-guide[data-guide-dock=top] { grid-template-rows: var(--ex-toolbar-height, 140px) minmax(320px, var(--guide-extent, 380px)) minmax(280px, 1fr); }
+ body.ex .ex-work.guide-active > .view.has-guide > #caption { min-height: 300px; }
+ body.ex .ex-work.guide-active .guide-body { min-height: 180px; }
+ body.ex .ex-work.guide-active > .view.has-guide:fullscreen { min-height: 100vh; overflow: auto; }
+}
+
+/* Student work stays separate from the optional authoring controls. */
+body.ex:not(.teacher-enabled) .ex-author-tools,
+body.ex:not(.teacher-enabled) .ex-author-only { display: none; }
+body.ex #exTeacherMode { flex: none; min-height: 36px; padding: 6px 12px; border: 1px solid #8797b0; border-radius: 7px; background: #24324a; color: #f1f5fb; font: inherit; font-size: 13px; }
+.ex-mobile-tabs { display: none; }
+.ex .exp-step { border: 1px solid var(--line); border-radius: 7px; margin: 8px 0; padding: 0 10px; }
+.ex .exp-step summary { padding: 10px 0; cursor: pointer; font-weight: 600; line-height: 1.45; }
+.ex .exp-step > :last-child { margin-bottom: 10px; }
+.ex .prediction-hint { padding: 10px 12px; color: #f8e8ae; background: #3d351e; border-left: 3px solid #d8ac47; border-radius: 5px; line-height: 1.6; }
+.ex .caption[data-theme=light] .prediction-hint { color: #654400; background: #fff5d7; border-color: #a87a00; }
+.ex .cap-curve-wrap { height: 160px; flex: none; }
+@media (max-width: 720px) {
+ body.ex .appbar .exp { order: 2; flex: 1 1 100%; }
+ body.ex #exTeacherMode { order: 1; margin-left: auto; }
+ body.ex .ex-mobile-tabs { display: flex; position: sticky; top: 0; z-index: 25; gap: 6px; flex-wrap: wrap; padding: 8px; border-bottom: 1px solid var(--line); background: var(--surface); }
+ body.ex .ex-mobile-tabs button { flex: 1; min-height: 44px; border: 1px solid var(--line); border-radius: 7px; padding: 8px; color: var(--ink); background: var(--surface); font: inherit; font-size: 14px; }
+ body.ex .ex-mobile-tabs [aria-current=page], body.ex .ex-mobile-tabs [aria-expanded=true] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-2); }
+ body.ex .ex-work > .ex-left { flex: none; max-height: 45vh; overflow: auto; border-bottom: 1px solid var(--line); }
+ body.ex .ex-work > .ex-right { flex: none; max-height: none; width: 100%; box-sizing: border-box; }
+ body.ex .ex-work.mobile-questions > .view { display: none; }
+ body.ex .ex-work > .view { min-height: 650px; height: calc(100svh - 170px); padding: 8px; }
+ body.ex .ex-work > .view.has-guide[data-guide-dock] { min-height: 900px; height: calc(100svh - 170px); grid-template-rows: var(--ex-toolbar-height, 180px) minmax(320px, 1fr) minmax(320px, var(--guide-extent, 380px)); }
+ body.ex .ex-work > .view.guide-collapsed[data-guide-dock], body.ex .ex-work > .view.model-only[data-guide-dock] { min-height: 650px; grid-template-rows: var(--ex-toolbar-height, 180px) minmax(320px, 1fr); }
+ body.ex #exToggleLeft, body.ex #exToggleRight { display: none; }
+ body.ex .btn, body.ex .btn.mini, body.ex .ex-item, body.ex .guide-grip button, body.ex .caption .btn, body.ex #exTeacherMode { min-height: 44px; }
+ body.ex .ex-left .btns { flex-wrap: wrap; }
+ body.ex .ex-left .btns > .btn { flex: 1 1 130px; white-space: normal; }
+ body.ex select, body.ex input:not([type=checkbox]):not([type=range]):not([type=color]) { min-height: 44px; }
+ body.ex .guide-grip { min-height: 44px; }
+ body.ex .exp-step summary { min-height: 44px; box-sizing: border-box; }
+ body.ex .view:fullscreen { height: 100svh; overflow: auto; }
+ body.ex .ex-work > .view.has-guide[data-guide-dock]:fullscreen { min-height: 100svh; height: 100svh; grid-template-rows: var(--ex-toolbar-height, 180px) minmax(180px, 1fr) minmax(260px, 40svh); overflow: auto; }
+}

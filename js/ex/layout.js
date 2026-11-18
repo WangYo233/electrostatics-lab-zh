@@ -4,8 +4,15 @@
   window.addEventListener('DOMContentLoaded', () => {
     const U = EL.U, en = document.documentElement.lang.startsWith('en'), L = (zh, english) => en ? english : zh;
     const work = document.querySelector('.ex-work'), view = work.querySelector('.view'), cap = U.$('#caption'), stage = U.$('#stage');
-    const layout = Object.assign({ left: 250, right: 380, dock: 'bottom', extent: 310 }, U.store.get('ex:layout', {}));
+    const layout = Object.assign({ left: 250, right: 380, dock: 'right', extent: 380 }, U.store.get('ex:layout', {}));
     const panels = Object.assign({ left: false, right: false, guide: false, modelWidth: 0, modelHeight: 0, guideWidth: 0, guideHeight: 0 }, U.store.get('ex:panels', {}));
+    if (U.store.get('ex:layoutVersion', 0) < 2) {
+      layout.dock = 'right'; layout.extent = 380;
+      panels.modelWidth = panels.modelHeight = panels.guideWidth = panels.guideHeight = 0;
+      U.store.set('ex:layoutVersion', 2);
+    }
+    let focusPanels = null, mobileList = false, mobileTools = false, mobileTab = document.body.dataset.exmode === 'teacher' ? 'questions' : 'model';
+    const mobile = () => innerWidth <= 720;
     const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
     const save = () => { U.store.set('ex:layout', layout); U.store.set('ex:panels', panels); };
     let pending = 0;
@@ -13,31 +20,77 @@
     const button = (id, icon, label, action) => U.h('button', { id, type: 'button', title: label, 'aria-label': label, onclick: action }, icon);
     const controls = U.h('div.ex-layout-tools', { 'aria-label': L('画板工具', 'Canvas tools') });
     const group = U.h('div.ex-panel-tools', { role: 'toolbar', 'aria-label': L('面板布局', 'Panel layout') });
-    const left = button('exToggleLeft', L('题目列表', 'Problem list'), '', () => { panels.left = !panels.left; schedule(); save(); });
-    const right = button('exToggleRight', L('题目内容', 'Problem details'), '', () => { panels.right = !panels.right; schedule(); save(); });
-    const guide = button('exToggleGuide', L('引导', 'Guide'), '', () => { panels.guide = view.classList.contains('model-only') ? false : !panels.guide; view.classList.remove('model-only'); schedule(); save(); });
-    const only = button('exModelOnly', '▣', L('仅模型全屏', 'Model-only fullscreen'), async () => {
+    const toggleSide = side => {
+      const state = focusPanels || panels; state[side] = !work.classList.contains(side + '-off');
+      if (innerWidth > 720 && innerWidth <= 1100 && !cap.hidden && !panels.guide && !state[side]) state[side === 'left' ? 'right' : 'left'] = true;
+      schedule(); save();
+    };
+    const left = button('exToggleLeft', L('题目列表', 'Problem list'), '', () => toggleSide('left'));
+    const right = button('exToggleRight', L('题目内容', 'Problem details'), '', () => toggleSide('right'));
+    const guide = button('exToggleGuide', L('引导', 'Guide'), '', () => { panels.guide = view.classList.contains('model-only') ? false : !panels.guide; view.classList.remove('model-only'); focusPanels = !panels.guide && innerWidth > 720 ? { left: true, right: true } : null; schedule(); save(); });
+    const only = button('exModelOnly', L('仅模型', 'Model only'), L('仅模型全屏', 'Model-only fullscreen'), async () => {
       if (view.classList.contains('model-only')) { view.classList.remove('model-only'); if (document.fullscreenElement) await document.exitFullscreen(); schedule(); return; }
       view.classList.add('model-only'); schedule();
       try { if (!document.fullscreenElement && view.requestFullscreen) await view.requestFullscreen(); }
       catch (_) { view.classList.remove('model-only'); schedule(); }
     });
-    const reset = button('exResetPanels', '↺', L('恢复布局', 'Reset layout'), () => {
-      Object.assign(layout, { left: 250, right: 380, dock: 'bottom', extent: 310 });
+    const reset = button('exResetPanels', L('恢复布局', 'Reset layout'), L('恢复布局', 'Reset layout'), () => {
+      Object.assign(layout, { left: 250, right: 380, dock: 'right', extent: 380 });
       Object.assign(panels, { left: false, right: false, guide: false, modelWidth: 0, modelHeight: 0, guideWidth: 0, guideHeight: 0 });
+      focusPanels = !cap.hidden && innerWidth > 720 ? { left: true, right: true } : null;
       view.classList.remove('model-only'); schedule(); save();
     });
-    group.append(left, right, guide, U.h('span.ex-layout-spacer'), reset);
+    const mobileToolsButton = button('exMobileTools', L('画板工具', 'Tools'), '', () => { mobileTools = !mobileTools; schedule(); });
+    group.append(left, right, guide, mobileToolsButton, U.h('span.ex-layout-spacer'), reset);
     const tools = stage.querySelector('.tools'); tools.className = 'ex-view-tools'; tools.append(only);
     const display = stage.querySelector('.stagebar'); display.className = 'ex-display-tools';
     controls.append(group, tools, display); view.prepend(controls);
+    const tabs = U.h('nav.ex-mobile-tabs', { 'aria-label': L('例题页面', 'Problem view') });
+    const modelTab = button('exMobileModel', L('模型', 'Model'), '', () => { mobileTab = 'model'; schedule(); });
+    const questionTab = button('exMobileQuestions', L('题目', 'Questions'), '', () => { mobileTab = 'questions'; schedule(); });
+    const listTab = button('exMobileList', L('题目列表', 'Problem list'), '', () => { mobileList = !mobileList; schedule(); });
+    tabs.append(modelTab, questionTab, listTab); work.before(tabs);
+    work.querySelector('.ex-left').addEventListener('click', e => { if (mobile() && e.target.closest('.ex-item')) { mobileList = false; mobileTab = 'questions'; schedule(); } });
+    const teacher = button('exTeacherMode', '', '', () => {
+      const enabled = !document.body.classList.contains('teacher-enabled');
+      document.body.classList.toggle('teacher-enabled', enabled);
+      if (!enabled && document.body.dataset.exmode === 'teacher') EL.EX.setMode('student');
+      updateTeacher();
+    });
+    document.querySelector('.appbar').append(teacher);
+    function updateTeacher() {
+      const enabled = document.body.classList.contains('teacher-enabled');
+      teacher.textContent = L(enabled ? '学生模式' : '教师模式', enabled ? 'Student mode' : 'Teacher mode');
+      teacher.title = teacher.textContent; teacher.setAttribute('aria-label', teacher.textContent); teacher.setAttribute('aria-pressed', String(enabled));
+      const authorOption = U.$('#modelSel').querySelector('option[value=add]');
+      if (authorOption) authorOption.hidden = !enabled;
+    }
+    if (document.body.dataset.exmode === 'teacher') document.body.classList.add('teacher-enabled');
+    updateTeacher();
+    new MutationObserver(() => {
+      if (document.body.dataset.exmode === 'teacher') { document.body.classList.add('teacher-enabled'); mobileTab = 'questions'; mobileList = false; }
+      updateTeacher(); schedule();
+    }).observe(document.body, { attributes: true, attributeFilter: ['data-exmode'] });
     const describe = (node, label, pressed) => { node.title = label; node.setAttribute('aria-label', label); node.setAttribute('aria-pressed', String(pressed)); };
     function apply() {
+      view.classList.toggle('mobile-tools-open', mobileTools);
+      mobileToolsButton.setAttribute('aria-expanded', String(mobileTools));
+      view.style.setProperty('--mobile-model-height', Math.max(320, panels.modelHeight || 320) + 'px');
       const room = Math.max(420, work.clientWidth - 340), scale = Math.min(1, room / (layout.left + layout.right));
       work.style.setProperty('--ex-left', Math.max(160, layout.left * scale) + 'px');
       work.style.setProperty('--ex-right', Math.max(220, layout.right * scale) + 'px');
-      work.classList.toggle('left-off', panels.left); work.classList.toggle('right-off', panels.right);
-      work.querySelector('.ex-left').inert = panels.left; work.querySelector('.ex-right').inert = panels.right;
+      if (cap.hidden || panels.guide) focusPanels = null;
+      let leftOff = mobile() ? !mobileList : focusPanels ? focusPanels.left : panels.left;
+      const rightOff = mobile() ? mobileTab !== 'questions' : focusPanels ? focusPanels.right : panels.right;
+      const activeGuide = !cap.hidden && !panels.guide && !view.classList.contains('model-only');
+      if (innerWidth > 720 && innerWidth <= 1100 && activeGuide && !leftOff && !rightOff) leftOff = true;
+      work.classList.toggle('guide-active', activeGuide);
+      work.classList.toggle('left-off', leftOff); work.classList.toggle('right-off', rightOff);
+      work.classList.toggle('mobile-questions', mobile() && mobileTab === 'questions');
+      work.querySelector('.ex-left').inert = leftOff; work.querySelector('.ex-right').inert = rightOff;
+      modelTab.setAttribute('aria-current', mobileTab === 'model' ? 'page' : 'false');
+      questionTab.setAttribute('aria-current', mobileTab === 'questions' ? 'page' : 'false');
+      listTab.setAttribute('aria-expanded', String(mobileList));
       // Side docking needs enough room for both the model and readable calculations.
       const dock = view.clientWidth < 700 && ['left', 'right'].includes(layout.dock) ? 'bottom' : layout.dock;
       view.dataset.guideDock = dock;
@@ -48,8 +101,8 @@
       for (const key of ['modelWidth', 'modelHeight', 'guideWidth', 'guideHeight']) view.style.setProperty('--' + key.replace(/[A-Z]/g, x => '-' + x.toLowerCase()), panels[key] ? panels[key] + 'px' : '100%');
       view.style.setProperty('--ex-toolbar-height', controls.offsetHeight + 'px');
       const showGuide = !cap.hidden && !panels.guide && !view.classList.contains('model-only');
-      describe(left, L(panels.left ? '展开题目列表' : '收起题目列表', panels.left ? 'Show problem list' : 'Hide problem list'), !panels.left);
-      describe(right, L(panels.right ? '展开题目内容' : '收起题目内容', panels.right ? 'Show problem panel' : 'Hide problem panel'), !panels.right);
+      describe(left, L(leftOff ? '展开题目列表' : '收起题目列表', leftOff ? 'Show problem list' : 'Hide problem list'), !leftOff);
+      describe(right, L(rightOff ? '展开题目内容' : '收起题目内容', rightOff ? 'Show problem panel' : 'Hide problem panel'), !rightOff);
       describe(guide, L(showGuide ? '收起引导' : '展开引导', showGuide ? 'Hide guide' : 'Show guide'), showGuide);
       describe(only, view.classList.contains('model-only') ? L('退出仅模型全屏', 'Exit model-only fullscreen') : L('仅模型全屏', 'Model-only fullscreen'), view.classList.contains('model-only'));
       describe(U.$('#btnFull'), document.fullscreenElement ? L('退出全屏', 'Exit fullscreen') : L('模型与引导全屏', 'Model and guide fullscreen'), !!document.fullscreenElement);
@@ -95,7 +148,7 @@
         if (nav) { const prev = nav.querySelector('button'); prev.disabled = EL.EX.S.step === 0; prev.title = L('上一步', 'Previous step'); prev.setAttribute('aria-label', prev.title); }
         const body = U.h('div.guide-body'); children.forEach(node => { if (node !== nav) body.append(node); });
         const grip = U.h('div.guide-grip', { tabindex: '0', title: L('拖动', 'Drag') }, U.h('span', null, L('⠿ 引导探究', '⠿ Guided inquiry')));
-        const fold = button('', L('收起', 'Collapse'), L('收起引导', 'Hide guide'), () => { panels.guide = true; schedule(); save(); }); fold.className = 'guide-fold';
+        const fold = button('', L('收起', 'Collapse'), L('收起引导', 'Hide guide'), () => { panels.guide = true; focusPanels = null; schedule(); save(); }); fold.className = 'guide-fold';
         grip.append(fold);
         grip.addEventListener('pointerdown', e => {
           if (e.target.closest('button,.guide-corner')) return;
@@ -109,7 +162,8 @@
     }
     const openGuide = EL.EX.guide;
     EL.EX.guide = function (...args) {
-      panels.guide = false; view.classList.remove('model-only');
+      panels.guide = false; view.classList.remove('model-only'); mobileTab = 'model'; mobileList = false;
+      focusPanels = innerWidth > 720 ? { left: true, right: true } : null;
       const result = openGuide.apply(this, args); decorateGuide(); save(); return result;
     };
     new MutationObserver(decorateGuide).observe(cap, { childList: true, attributes: true, attributeFilter: ['hidden'] });

@@ -41,3 +41,26 @@ body.ex .ex-route-controls .route-progress { flex: 1 1 100px; width: 100px; min-
 .ex-route-dialog .route-check { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
 .ex-route-dialog .note { line-height: 1.5; color: var(--muted); font-size: 12px; }
 @media (max-width: 480px) { .ex-route-dialog .route-row { flex-direction: column; gap: 0; } .ex-route-dialog .route-field { grid-template-columns: 90px minmax(0, 1fr); } }
+
+.ex-view-tools button, .ex-display-tools #btnTheme, .ex-panel-tools #exResetPanels { width: auto; padding: 6px 10px; font-size: 13px; }
+.ex-view-tools #btnZin, .ex-view-tools #btnZout { width: 34px; padding: 4px; font-size: 18px; }
+@media (max-width: 720px) {
+ body.ex .ex-layout-tools button, body.ex .ex-panel-tools #exToggleGuide, body.ex .ex-panel-tools #exProbeRoute, body.ex .ex-display-tools .sb-layers button, body.ex .ex-route-controls button { min-height: 44px; min-width: 44px; }
+ body.ex .ex-layout-tools { gap: 8px; }
+ body.ex .ex-display-tools .sb-mid { display: none; }
+ body.ex .ex-display-tools .sb-layers { display: flex; }
+ body.ex .ex-layout-spacer { display: none; }
+}
+
+#exMobileTools { display: none; }
+@media (max-width: 720px) {
+ body.ex #exMobileTools { display: inline-grid; width: auto; padding: 6px 10px; font-size: 13px; }
+ body.ex .view:not(.mobile-tools-open) .ex-view-tools,
+ body.ex .view:not(.mobile-tools-open) .ex-display-tools,
+ body.ex .view:not(.mobile-tools-open) #exResetPanels { display: none; }
+}
+
+@media (max-width: 720px) {
+ body.ex .ex-work > .view.has-guide:not(.guide-collapsed):not(.model-only)[data-guide-dock] { min-height: 0; height: auto; grid-template-rows: var(--ex-toolbar-height, 44px) var(--mobile-model-height, 320px) minmax(380px, var(--guide-extent, 380px)); }
+ body.ex .ex-work > .view.has-guide:fullscreen:not(.guide-collapsed):not(.model-only) { height: 100svh; overflow: auto; }
+}

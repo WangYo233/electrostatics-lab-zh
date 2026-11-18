@@ -59,6 +59,19 @@
     if (m && +(m[1] || 1) <= 999 && +(m[2] || 1) <= 200 && +(m[3] || 1) <= 999) return n.text;
     return f4(x).replace(/^-/, '−');
   };
+  // A numerical equality is exact only when its source contributions support that form.
+  VA.valueEq = function (value, unit, terms) {
+    const exact = terms && EL.EX && EL.EX.exactSum ? EL.EX.exactSum(terms) : null, pi = EL.EX && EL.EX.niceNum ? EL.EX.niceNum(value) : null, n = exact || niceX(value) || (pi?.exact ? pi : null);
+    let tex = n ? n.tex : f4(value);
+    if (unit && /[+-]/.test(tex.replace(/^-/, ''))) tex = R`\left(${tex}\right)`;
+    return (n ? '=' : R`\approx `) + tex + (unit ? R`\,${unit.replace(/²/g, '^2').replace(/³/g, '^3')}` : '');
+  };
+  const vectorTerms = (items, total) => {
+    const length = V.len(total);
+    return length < 1e-12 ? [0] : items.map(item => V.dot(item.E, total) / length);
+  };
+  const tableCell = x => { const n = niceX(x); return n ? n.text : '≈' + f4(x); };
+  const tableNumber = x => typeof x !== 'number' || !Number.isFinite(x) ? U.fmt(x) : Number.isInteger(x) ? String(x) : '≈' + f4(x);
   // 方向相同且重合的矢量：沿垂直方向错开一点，使每个矢量都看得见（返回与 vs 等长的偏移数组；.rank 为组内序号）
   VA.offsets = function (vs, gap) {
     const out = vs.map(() => [0, 0, 0]), seen = new Set();
@@ -150,7 +163,8 @@
     const d = { P, parts, groups, T, named, pn, unit, rU, partial: !!o.partial }, steps = [];
     const dir = v => VA.describe(v, named);
     steps.push({ id: 'list', title: '列出各分场强', text: (o.partial ? '这次只合成在“自由合成”中选中的 ' + parts.map(x => x.n).join('、') + '，结果是它们的矢量和，不是 ' + pn + ' 点的合场强。' : '') + '每个场源电荷单独在 ' + pn + ' 点产生的电场强度称为分场强，大小为 |E_i| = k|q_i|/r_i²。正电荷的分场强背离该电荷，负电荷的分场强指向该电荷。',
-      rows: [['场源电荷', 'q', 'r / ' + rU, '|E_i| / ' + unit, '方向']].concat(parts.map(x => [x.label, VA.cell(x.q), VA.cell(x.r), VA.txtV(x.mag), (x.q > 0 ? '背离 ' : '指向 ') + x.label])) });
+      rows: [['场源电荷', 'q / Q', 'r / ' + rU, '|E_i| / (' + unit + ')', '方向']].concat(parts.map(x => [x.label, tableCell(x.q), tableCell(x.r), tableCell(x.mag), (x.q > 0 ? '背离 ' : '指向 ') + x.label])) });
+    if (groups.length > 1) steps[0].text += ' 记 ' + groups.map(g => g.name + ' = ' + g.items.map(x => x.n).join(' + ')).join('；') + '，分别表示这些分场强的矢量和。';
     if (o.method === 'coord') return VA.coordSteps(o, d, steps);
     const g0 = groups.find(g => g.type === 'pair' && !g.unequal || g.type === 'plane');
     if (parts.length > 2 && g0) {
@@ -188,7 +202,7 @@
     return { id: 'angle', g, title: '求 ' + a.n + ' 与 ' + b.n + ' 的夹角', th,
       text: '在三角形 ' + a.label + pn + b.label + ' 中，由余弦定理求出 ' + geoName + '。' +
         (same ? '两个场源电荷同号，' + a.n + ' 与 ' + b.n + ' 的夹角等于 ' + geoName + '。' : '两个场源电荷异号，' + a.n + ' 与 ' + b.n + ' 的夹角等于 ' + geoName + ' 的补角。'),
-      tex: R`\cos\angle ${a.label}${pn}${b.label}=\frac{r_{${a.label}}^2+r_{${b.label}}^2-|${a.label}${b.label}|^2}{2r_{${a.label}}r_{${b.label}}}=${VA.texV(cg)}\quad\theta=${same ? '' : '180^\\circ-'}\angle ${a.label}${pn}${b.label}=${f4(th)}^\circ`,
+      tex: R`\cos\angle ${a.label}${pn}${b.label}=\frac{r_{${a.label}}^2+r_{${b.label}}^2-|${a.label}${b.label}|^2}{2r_{${a.label}}r_{${b.label}}}=${VA.texV(cg)}\quad\theta=${same ? '' : '180^\\circ-'}\angle ${a.label}${pn}${b.label}${VA.valueEq(th)}^\circ`,
       view: inl ? V.cross(V.sub(a.p, d.P), V.sub(b.p, d.P)) : null };
   };
   // ---- 相似三角形法：两个场源电荷到观察点的距离相等、电荷量大小相同、且与观察点不共线 ----
@@ -221,7 +235,7 @@
       text = pos.n + ' 沿由 ' + pos.label + ' 指向 ' + pn + ' 的方向，' + neg.n + ' 沿由 ' + pn + ' 指向 ' + neg.label + ' 的方向，两者大小都是 E₀，而 ' + pn + pos.label + ' = ' + pn + neg.label + ' = r。' +
         '把 ' + neg.n + ' 平移到 ' + pos.n + ' 的末端，矢量三角形的两边分别平行于 ' + pos.label + pn + '、' + pn + neg.label + '，且两边之比等于 ' + pn + pos.label + ' : ' + pn + neg.label + '，所以它与三角形 ' + tri + ' 相似，相似比为 E₀/r。' +
         '由相似得对应角相等：' + nm + ' 与 ' + pos.n + ' 的夹角等于 ' + base + '，两分场强的夹角 θ 等于 ' + apexN + ' 的补角。';
-      tex = R`\cos\angle ${pn}${pos.label}${neg.label}=\frac{|${pos.label}${neg.label}|/2}{r}=${VA.texV(s.ab / 2 / s.r)}\qquad\cos\angle ${s.a.label}${pn}${s.b.label}=${VA.texV((2 * s.r * s.r - s.ab * s.ab) / (2 * s.r * s.r))}\quad\theta=180^\circ-\angle ${s.a.label}${pn}${s.b.label}=${f4(s.th)}^\circ`;
+      tex = R`\cos\angle ${pn}${pos.label}${neg.label}=\frac{|${pos.label}${neg.label}|/2}{r}=${VA.texV(s.ab / 2 / s.r)}\qquad\cos\angle ${s.a.label}${pn}${s.b.label}=${VA.texV((2 * s.r * s.r - s.ab * s.ab) / (2 * s.r * s.r))}\quad\theta=180^\circ-\angle ${s.a.label}${pn}${s.b.label}${VA.valueEq(s.th)}^\circ`;
       ask = { q: nm + ' 的方向与哪个方向相同？', options: [right, '由 ' + neg.label + ' 指向 ' + pos.label, '由 ' + pn + ' 指向 ' + pos.label + neg.label + ' 的中点'].sort(), a: right,
         why: '矢量三角形与三角形 ' + tri + ' 相似，' + nm + ' 对应边 ' + pos.label + neg.label + '，所以 ' + nm + ' 的方向' + right + '。' };
     } else {
@@ -229,11 +243,11 @@
       text = '设 ' + mn + ' 为 ' + s.a.label + s.b.label + ' 的中点。两分场强大小都是 E₀，以它们为邻边的平行四边形是菱形，对角线 ' + nm + ' 平分两分场强的夹角。' +
         '半个菱形组成的三角形（边为 ' + s.a.n + ' 与 ' + nm + '/2）与三角形 ' + tri + ' 相似，相似比为 E₀/r。' +
         '由相似得对应角相等：' + nm + ' 与 ' + s.a.n + ' 的夹角等于 ∠' + s.a.label + pn + mn + '，两分场强的夹角 θ 等于 ' + apexN + '。';
-      tex = R`|${pn}${mn}|=\sqrt{r^2-(|${s.a.label}${s.b.label}|/2)^2}=${VA.texV(s.pm)}\qquad\cos\angle ${s.a.label}${pn}${mn}=\frac{|${pn}${mn}|}{r}=${VA.texV(s.pm / s.r)}\quad\theta=\angle ${s.a.label}${pn}${s.b.label}=${f4(s.th)}^\circ`;
+      tex = R`|${pn}${mn}|=\sqrt{r^2-(|${s.a.label}${s.b.label}|/2)^2}${VA.valueEq(s.pm, d.rU)}\qquad\cos\angle ${s.a.label}${pn}${mn}=\frac{|${pn}${mn}|}{r}=${VA.texV(s.pm / s.r)}\quad\theta=\angle ${s.a.label}${pn}${s.b.label}${VA.valueEq(s.th)}^\circ`;
       ask = { q: nm + ' 的方向与哪个方向相同？', options: [right, toP ? '由 ' + pn + ' 指向 ' + mn : '由 ' + mn + ' 指向 ' + pn, '由 ' + s.a.label + ' 指向 ' + s.b.label].sort(), a: right,
         why: '菱形的对角线 ' + nm + ' 与三角形 ' + tri + ' 中的边 ' + mn + pn + ' 对应，两个场源电荷' + (toP ? '都带正电，所以 ' : '都带负电，所以 ') + nm + ' 的方向' + right + '。' };
     }
-    tex = R`r=|${pn}${s.a.label}|=|${pn}${s.b.label}|=${VA.texV(s.r)},\quad E_0=|\vec ${s.a.n}|=|\vec ${s.b.n}|=\frac{k|q|}{r^2}=${VA.texV(s.E)}\qquad ` + tex;
+    tex = R`r=|${pn}${s.a.label}|=|${pn}${s.b.label}|${VA.valueEq(s.r, d.rU)},\quad E_0=|\vec ${s.a.n}|=|\vec ${s.b.n}|=\frac{k|q|}{r^2}${VA.valueEq(s.E, d.unit)}\qquad ` + tex;
     return { id: 'similar', g, sim: s, th: s.th, title: '用相似三角形求 ' + s.a.n + ' 与 ' + s.b.n + ' 的合成', text, tex, ask,
       setup: '设 ' + mn + ' 为线段 ' + s.a.label + s.b.label + ' 的中点。',
       view: V.cross(V.sub(s.a.p, d.P), V.sub(s.b.p, d.P)) };
@@ -244,9 +258,9 @@
       ? '由相似三角形的对应边成比例，|' + nm + '| : E₀ = ' + s.pos.label + s.neg.label + ' : r，所以 |' + nm + '| 等于 E₀ 乘以 ' + s.pos.label + s.neg.label + '/r，' + isV(L) + '。'
       : '由相似三角形的对应边成比例，|' + nm + '|/2 : E₀ = ' + pn + s.mn + ' : r，所以 |' + nm + '| 等于 2E₀ 乘以 ' + pn + s.mn + '/r，' + isV(L) + '。';
     const tex = s.opp
-      ? R`|${g.tex}|=E_0\cdot\frac{|${s.pos.label}${s.neg.label}|}{r}=${VA.texV(s.E)}\times${VA.texV(s.ab / s.r)}=${VA.texV(L)}`
-      : R`|${g.tex}|=2E_0\cdot\frac{|${pn}${s.mn}|}{r}=2\times${VA.texV(s.E)}\times${VA.texV(s.pm / s.r)}=${VA.texV(L)}`;
-    return { id: 'pairSum', g, sim: s, title: '求 ' + nm + ' 的大小与方向', hide, view: V.cross(s.a.E, s.b.E), text: text + (D ? nm + ' 的方向' + D + '。' : ''), tex: R`r=|${pn}${s.a.label}|=|${pn}${s.b.label}|=${VA.texV(s.r)},\quad E_0=\frac{k|q|}{r^2}=${VA.texV(s.E)}\qquad ` + tex };
+      ? R`|${g.tex}|=E_0\cdot\frac{|${s.pos.label}${s.neg.label}|}{r}${VA.valueEq(s.ab / s.r)}E_0${VA.valueEq(L, d.unit, vectorTerms(g.items, g.S))}`
+      : R`|${g.tex}|=2E_0\cdot\frac{|${pn}${s.mn}|}{r}${VA.valueEq(2 * s.pm / s.r)}E_0${VA.valueEq(L, d.unit, vectorTerms(g.items, g.S))}`;
+    return { id: 'pairSum', g, sim: s, title: '求 ' + nm + ' 的大小与方向', hide, view: V.cross(s.a.E, s.b.E), text: text + (D ? nm + ' 的方向' + D + '。' : ''), tex: R`r=|${pn}${s.a.label}|=|${pn}${s.b.label}|${VA.valueEq(s.r, d.rU)},\quad E_0=\frac{k|q|}{r^2}${VA.valueEq(s.E, d.unit)}\qquad ` + tex };
   };
   VA.pairStep = function (g, d, hide, dir) {
     const [a, b] = g.items, eq = tol(a.mag, b.mag), zero = V.len(g.S) < 1e-12, D = zero ? null : dir(g.S);
@@ -255,7 +269,7 @@
       text: zero ? a.n + ' 与 ' + b.n + ' 大小相等、方向相反，矢量和为零，即 ' + g.name + ' 为零。' :
         (col ? a.n + ' 与 ' + b.n + ' 在同一直线上且方向' + (para ? '相同，' + g.name + ' 的大小等于两者大小之和。' : '相反，' + g.name + ' 的大小等于两者大小之差，方向与较大的分场强相同。')
           : '以 ' + a.n + '、' + b.n + ' 为邻边作平行四边形，对角线表示它们的矢量和 ' + g.name + '。' + (eq ? '两分场强大小相等，' + g.name + ' 沿它们夹角的平分线。' : '')) + (D ? g.name + ' 的方向' + D + '。' : ''),
-      tex: R`E_1=|\vec ${a.n}|=${VA.texV(a.mag)},\quad E_2=|\vec ${b.n}|=${VA.texV(b.mag)}\qquad ` + (col && !zero ? R`|${g.tex}|=${para ? 'E_1+E_2' : '|E_1-E_2|'}=${VA.texV(V.len(g.S))}` : eq ? R`|${g.tex}|=2E_1\cos\frac{\theta}{2}=${VA.texV(V.len(g.S))}` : R`|${g.tex}|=\sqrt{E_1^2+E_2^2+2E_1E_2\cos\theta}=${VA.texV(V.len(g.S))}`) };
+      tex: R`E_1=|\vec ${a.n}|${VA.valueEq(a.mag, d.unit)},\quad E_2=|\vec ${b.n}|${VA.valueEq(b.mag, d.unit)}\qquad ` + (col && !zero ? R`|${g.tex}|=${para ? 'E_1+E_2' : '|E_1-E_2|'}${VA.valueEq(V.len(g.S), d.unit, vectorTerms(g.items, g.S))}` : eq ? R`|${g.tex}|=2E_1\cos\frac{\theta}{2}${VA.valueEq(V.len(g.S), d.unit, vectorTerms(g.items, g.S))}` : R`|${g.tex}|=\sqrt{E_1^2+E_2^2+2E_1E_2\cos\theta}${VA.valueEq(V.len(g.S), d.unit, vectorTerms(g.items, g.S))}`) };
   };
   VA.planeStep = function (g, d, hide) {
     const lb = g.items.map(x => x.label).join(''), pn = d.pn;
@@ -274,14 +288,14 @@
     const dot = pairs.reduce((sum, p) => sum + p.c, 0);
     return { pairs, dot, squared: items.reduce((sum, a) => sum + a.mag * a.mag, 0) + 2 * dot };
   };
-  const proofRows = p => [['场源对', 'r_i', 'r_j', 'd_ij', 'C_ij']].concat(p.pairs.map(x => [x.a.label + ' / ' + x.b.label, VA.cell(x.a.r), VA.cell(x.b.r), VA.cell(x.distance), VA.cell(x.c)]));
+  const proofRows = (p, d) => [['场源对', 'r_i/' + d.rU, 'r_j/' + d.rU, 'd_ij/' + d.rU, 'C_ij/(' + d.unit + ')²']].concat(p.pairs.map(x => [x.a.label + ' / ' + x.b.label, tableNumber(x.a.r), tableNumber(x.b.r), tableNumber(x.distance), tableNumber(x.c)]));
   const proofTex = R`d_{ij}=|S_iS_j|,\quad C_{ij}=\vec E_i\cdot\vec E_j=\frac{k^2q_iq_j(r_i^2+r_j^2-d_{ij}^2)}{2r_i^3r_j^3}`;
   const proofText = '记 r_i 为观察点到场源 S_i 的距离，d_ij 为两场源间距。由两场源与观察点组成的三角形的余弦定理及电荷正负号得到 C_ij（各量均取本平台的归一化单位，k=1）。下表列出三边及 C_ij；普通小数为近似读数，计算使用未舍入值。';
   VA.chainStep = function (g, d, hide, dir, unit) {
     const proof = lengthProof(g.items), D = V.len(g.S) > 1e-12 ? dir(g.S) : null;
     return { id: 'chainSum', g, proof, title: '由距离关系求 ' + g.name, hide, view: g.n || null,
-      text: proofText + '将分场强首尾相接；把矢量和的平方展开，即可从三边求出大小，无须先求数值夹角。' + (D ? '' + g.name + ' 的方向' + D + '。' : ''), rows: proofRows(proof),
-      tex: proofTex + R`\qquad |${g.tex}|^2=\sum_i E_i^2+2\sum_{i<j}C_{ij}=${VA.texV(g.items.reduce((s, a) => s + a.mag * a.mag, 0))}+2(${VA.texV(proof.dot)})=${VA.texV(Math.max(0, proof.squared))}\qquad |${g.tex}|=${VA.texV(V.len(g.S))}` };
+      text: proofText + '将分场强首尾相接；把矢量和的平方展开，即可从三边求出大小，无须先求数值夹角。' + (D ? '' + g.name + ' 的方向' + D + '。' : ''), rows: proofRows(proof, d),
+      tex: proofTex + R`\qquad |${g.tex}|^2=\sum_i E_i^2+2\sum_{i<j}C_{ij}\qquad\frac{|${g.tex}|^2}{(${d.unit.replace(/²/g, '^2')})^2}${VA.valueEq(Math.max(0, proof.squared), '', g.items.map(a => a.mag * a.mag).concat(proof.pairs.map(x => 2 * x.c)))}\qquad |${g.tex}|${VA.valueEq(V.len(g.S), d.unit, vectorTerms(g.items, g.S))}` };
   };
 
   // This construction applies only when all six edges form a regular tetrahedron.
@@ -303,14 +317,14 @@
     const shared = { tetra, hide, view: V.cross(V.sub(m.mid, d.P), V.sub(c.p, d.P)) };
     return [
       { ...shared, id: 'tetraHeight', title: '先求正四面体中的已知长度',
-        text: a.label + b.label + cn + pn + ' 的六条棱均长 a，因此是正四面体。' + mn + ' 为 ' + a.label + b.label + ' 的中点，' + gn + ' 为底面重心。等腰三角形的中线也是高；底面重心按 2:1 分中线。因顶点 ' + pn + ' 到底面三顶点等距，其垂足是底面中心 ' + gn + '。用勾股定理求高度。',
-        tex: R`a=|${pn}${a.label}|=|${pn}${b.label}|=|${pn}${cn}|=|${a.label}${b.label}|=|${a.label}${cn}|=|${b.label}${cn}|\qquad |${pn}${mn}|=|${cn}${mn}|=\frac{\sqrt3}{2}a,\quad |${cn}${gn}|=\frac23|${cn}${mn}|=\frac{a}{\sqrt3}\qquad |${pn}${gn}|=\sqrt{a^2-|${cn}${gn}|^2}=\sqrt{\frac23}a` },
+        text: a.label + b.label + cn + pn + ' 的六条棱均长 a，因此是正四面体。' + mn + ' 为 ' + a.label + b.label + ' 的中点，' + gn + ' 为底面重心。沿用前面已求出的 ' + pn + mn + '，不再重复计算。等腰三角形的中线也是高；底面重心按 2:1 分中线。因顶点 ' + pn + ' 到底面三顶点等距，其垂足是底面中心 ' + gn + '。用勾股定理求高度。',
+        tex: R`a=|${pn}${a.label}|=|${pn}${b.label}|=|${pn}${cn}|=|${a.label}${b.label}|=|${a.label}${cn}|=|${b.label}${cn}|\qquad |${cn}${mn}|=\frac{\sqrt3}{2}a,\quad |${cn}${gn}|=\frac23|${cn}${mn}|=\frac{a}{\sqrt3}\qquad |${pn}${gn}|=\sqrt{a^2-|${cn}${gn}|^2}=\sqrt{\frac23}a` },
       { ...shared, id: 'tetraSimilar', title: '构造与矢量三角形相似的三角形',
         text: '沿 ' + cn + pn + ' 过 ' + pn + ' 延长到 ' + hn + '，使 ' + pn + hn + '=a/2。' + cn + '、' + gn + '、' + mn + ' 共线，且 ' + cn + '、' + pn + '、' + hn + ' 共线，所以两三角形在 ' + cn + ' 处的夹角相同。两组夹边的比均为 3/2，由边角边判定相似，得到第三边。',
         tex: R`|${pn}${hn}|=\frac a2,\quad |${cn}${hn}|=\frac32a,\quad\frac{|${cn}${mn}|}{|${cn}${gn}|}=\frac{|${cn}${hn}|}{|${cn}${pn}|}=\frac32\qquad △ ${cn}${mn}${hn}\sim△ ${cn}${gn}${pn},\quad |${mn}${hn}|=\frac32|${gn}${pn}|=\frac{\sqrt6}{2}a` },
       { ...shared, id: 'combine', title: '由三边比例求合场强',
         text: pair.name + ' 对应 ' + mn + '→' + pn + '，' + single.name + ' 平移后对应 ' + pn + '→' + hn + '，比例系数相同；两矢量相加对应 ' + mn + '→' + hn + '。三边比为 √3:1:√6，直接得到合场强大小；负电荷时所有对应矢量同时反向，长度关系不变。',
-        tex: R`E_0=\frac{k|q|}{a^2},\quad ${pair.tex}=\frac{2kq}{a^3}\vec{${mn}${pn}},\quad ${single.tex}=\frac{2kq}{a^3}\vec{${pn}${hn}}\qquad |${pair.tex}|:|${single.tex}|:|\vec E|=|${mn}${pn}|:|${pn}${hn}|:|${mn}${hn}|=\sqrt3:1:\sqrt6\qquad |\vec E|=\sqrt6 E_0=${VA.texV(V.len(d.T))}` }
+        tex: R`E_0=\frac{k|q|}{a^2},\quad ${pair.tex}=\frac{2kq}{a^3}\vec{${mn}${pn}},\quad ${single.tex}=\frac{2kq}{a^3}\vec{${pn}${hn}}\qquad |${pair.tex}|:|${single.tex}|:|\vec E|=|${mn}${pn}|:|${pn}${hn}|:|${mn}${hn}|=\sqrt3:1:\sqrt6\qquad |\vec E|=\sqrt6 E_0${VA.valueEq(V.len(d.T), d.unit, vectorTerms(d.parts, d.T))}` }
     ];
   };
   VA.combineStep = function (d, hide, dir, unit) {
@@ -318,29 +332,29 @@
     const proof = two ? lengthProof(G[0].items, G[1].items) : lengthProof(d.parts);
     const base = two ? V.dot(G[0].S, G[0].S) + V.dot(G[1].S, G[1].S) : d.parts.reduce((sum, a) => sum + a.mag * a.mag, 0);
     proof.squared = base + 2 * proof.dot;
-    const square = two ? R`D=${G[0].tex}\cdot ${G[1].tex}=\sum C_{ij}=${VA.texV(proof.dot)}\qquad |\vec E|^2=|${G[0].tex}|^2+|${G[1].tex}|^2+2D` : R`|\vec E|^2=\sum_i E_i^2+2\sum_{i<j}C_{ij}`;
+    const square = two ? R`D=${G[0].tex}\cdot ${G[1].tex}=\sum C_{ij}\qquad\frac{D}{(${d.unit.replace(/²/g, '^2')})^2}${VA.valueEq(proof.dot, '', proof.pairs.map(x => x.c))}\qquad |\vec E|^2=|${G[0].tex}|^2+|${G[1].tex}|^2+2D` : R`|\vec E|^2=\sum_i E_i^2+2\sum_{i<j}C_{ij}`;
     const D = V.len(d.T) > 1e-12 ? dir(d.T) : null;
     return { id: 'combine', proof, title: '由已知距离合成各部分和', hide,
       view: two && V.len(V.cross(G[0].S, G[1].S)) > 1e-12 ? V.cross(G[0].S, G[1].S) : null,
-      text: proofText + (two ? '由数量积的分配律，跨组 C_ij 相加就是两个部分和的数量积 D。再展开合矢量的平方求大小；D=0 时才可用勾股定理。' : '将全部分场强的矢量和平方展开。即使某组抵消为零或有多组剩余项，也由同一距离关系求出结果。') + (D ? '合场强的方向' + D + '。' : ''), rows: proofRows(proof),
-      tex: proofTex + R`\qquad ` + square + R`=${VA.texV(base)}+2(${VA.texV(proof.dot)})=${VA.texV(Math.max(0, proof.squared))}\qquad |\vec E|=${VA.texV(V.len(d.T))}` };
+      text: proofText + (two ? '由数量积的分配律，跨组 C_ij 相加就是两个部分和的数量积 D。再展开合矢量的平方求大小；D=0 时才可用勾股定理。' : '将全部分场强的矢量和平方展开。即使某组抵消为零或有多组剩余项，也由同一距离关系求出结果。') + (D ? '合场强的方向' + D + '。' : ''), rows: proofRows(proof, d),
+      tex: proofTex + R`\qquad ` + square + R`\qquad\frac{|\vec E|^2}{(${d.unit.replace(/²/g, '^2')})^2}${VA.valueEq(Math.max(0, proof.squared), '', (two ? G.map(g => V.dot(g.S, g.S)) : d.parts.map(a => a.mag * a.mag)).concat(proof.pairs.map(x => 2 * x.c)))}\qquad |\vec E|${VA.valueEq(V.len(d.T), d.unit, vectorTerms(d.parts, d.T))}` };
   };
   VA.checkStep = function (d, unit) {
     const D = VA.describe(d.T, d.named), T = d.T;
     return { id: 'check', title: '用坐标法核对结果', view: 'reset',
       text: (V.len(T) < 1e-12 ? (d.partial ? '所选分场强的矢量和为零。' : d.pn + ' 点的合场强为零。') : (d.partial ? '所选分场强矢量和的大小' : d.pn + ' 点合场强的大小') + isV(V.len(T)) + ' ' + unit + (D ? '，方向' + D : '') + '。') + '把各分场强的 x、y、z 分量分别相加，得到的结果与几何法一致。',
-      rows: [['', 'E_x', 'E_y', 'E_z']].concat(d.parts.map(x => [x.n, VA.cell(x.E[0]), VA.cell(x.E[1]), VA.cell(x.E[2])]), [['合计', VA.cell(T[0]), VA.cell(T[1]), VA.cell(T[2])]]),
-      tex: R`|\vec E|=\sqrt{E_x^2+E_y^2+E_z^2}=${VA.texV(V.len(T))}` };
+      rows: [['', 'E_x/(' + d.unit + ')', 'E_y/(' + d.unit + ')', 'E_z/(' + d.unit + ')']].concat(d.parts.map(x => [x.n, tableNumber(x.E[0]), tableNumber(x.E[1]), tableNumber(x.E[2])]), [['合计', tableNumber(T[0]), tableNumber(T[1]), tableNumber(T[2])]]),
+      tex: R`|\vec E|=\sqrt{E_x^2+E_y^2+E_z^2}${VA.valueEq(V.len(T), d.unit, vectorTerms(d.parts, T))}` };
   };
   VA.coordSteps = function (o, d, steps) {
     const T = d.T;
     steps.push({ id: 'coordR', title: '求相对位置矢量', text: '从每个场源电荷指向 ' + d.pn + ' 点的矢量为 d_i，它等于 ' + d.pn + ' 点的位置矢量减去该电荷的位置矢量，其长度就是距离 r_i。',
-      rows: [['场源电荷', 'd_x', 'd_y', 'd_z', 'r']].concat(d.parts.map(x => [x.label, VA.cell(x.d[0]), VA.cell(x.d[1]), VA.cell(x.d[2]), VA.cell(x.r)])), tex: R`\vec E_i=\frac{kq_i\,\vec d_i}{r_i^3}` });
+      rows: [['场源电荷', 'd_x/' + d.rU, 'd_y/' + d.rU, 'd_z/' + d.rU, 'r/' + d.rU]].concat(d.parts.map(x => [x.label, tableNumber(x.d[0]), tableNumber(x.d[1]), tableNumber(x.d[2]), tableNumber(x.r)])), tex: R`\vec E_i=\frac{kq_i\,\vec d_i}{r_i^3}` });
     steps.push({ id: 'coordE', title: '分量求和', text: '把各分场强的 x、y、z 分量分别相加，得到合场强的 x、y、z 分量。',
-      rows: [['', 'E_x', 'E_y', 'E_z']].concat(d.parts.map(x => [x.n, VA.cell(x.E[0]), VA.cell(x.E[1]), VA.cell(x.E[2])]), [['合计', VA.cell(T[0]), VA.cell(T[1]), VA.cell(T[2])]]) });
+      rows: [['', 'E_x/(' + d.unit + ')', 'E_y/(' + d.unit + ')', 'E_z/(' + d.unit + ')']].concat(d.parts.map(x => [x.n, tableNumber(x.E[0]), tableNumber(x.E[1]), tableNumber(x.E[2])]), [['合计', tableNumber(T[0]), tableNumber(T[1]), tableNumber(T[2])]]) });
     const D = VA.describe(T, d.named);
     steps.push({ id: 'check', title: '求合场强的大小与方向', view: 'reset', text: V.len(T) < 1e-12 ? '三个分量之和都为零，所以' + (d.partial ? '所选分场强的矢量和为零。' : ' ' + d.pn + ' 点的合场强为零。') : (d.partial ? '所选分场强矢量和的大小' : d.pn + ' 点合场强的大小') + isV(V.len(T)) + ' ' + (o.unit || 'kQ/L²') + (D ? '，方向' + D : '') + '。',
-      tex: R`|\vec E|=\sqrt{E_x^2+E_y^2+E_z^2}=${VA.texV(V.len(T))}` });
+      tex: R`|\vec E|=\sqrt{E_x^2+E_y^2+E_z^2}${VA.valueEq(V.len(T), d.unit, vectorTerms(d.parts, T))}` });
     steps.d = d;
     return steps;
   };
@@ -464,6 +478,7 @@
     let html = '';
     if (s.rows) html += '<table class="cap-tbl">' + s.rows.map((r, i) => '<tr>' + r.map(c => (i ? '<td>' : '<th>') + U.rich(c) + (i ? '</td>' : '</th>')).join('') + '</tr>').join('') + '</table>';
     if (s.tex) html += '<div class="cap-m' + (s.proof || s.tetra ? ' cap-proof' : '') + '">' + EL.texBlock(s.tex) + '</div>';
+    if (s.advanced) html += '<details class="cap-advanced"><summary>深入：计算核对</summary>' + (s.advanced.text ? '<p>' + U.rich(s.advanced.text) + '</p>' : '') + VA.stepHTML(s.advanced) + '</details>';
     return html;
   };
 })(window.EL);
