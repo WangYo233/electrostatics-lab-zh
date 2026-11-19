@@ -63,8 +63,11 @@
     U.$('#btnZin').textContent = L('放大', 'Zoom in'); U.$('#btnZout').textContent = L('缩小', 'Zoom out');
     const compactLabels = [[U.$('#exViewMenu'), L('视图', 'View')], [U.$('#exDisplayMenu'), L('显示', 'Show')], [U.$('#exLayoutMenu'), L('布局', 'Panels')], [U.$('#exProbeRoute'), L('探针', 'Route')], [full, L('全屏', 'Full')]];
     const setToolbarLabels = () => compactLabels.forEach(([button, label]) => { if (button) button.textContent = mobile() ? label : label + (button.id.startsWith('ex') && button.id !== 'exProbeRoute' ? ' ▾' : ''); });
+    const authorTools = U.$('.ex-author-tools');
+    const addPage = button('exAddProblemPage', L('题目添加', 'Add problems'), '', () => { EL.EX.T.start(); EL.EX.setMode('teacher'); });
     group.append(menu('exViewMenu', L('视图', 'View'), tools), menu('exDisplayMenu', L('显示', 'Display'), display),
-      menu('exLayoutMenu', L('布局', 'Layout'), U.h('div.ex-layout-menu', null, left, right, guide, reset)),
+      menu('exLayoutMenu', L('布局', 'Layout'), U.h('div.ex-layout-menu', null,
+        left, right, guide, reset, U.h('hr'), U.h('b.ex-menu-heading', null, L('题目管理', 'Problem management')), addPage, authorTools)),
       U.h('span.ex-layout-spacer'), full);
     controls.append(group); view.prepend(controls);
     setToolbarLabels();
@@ -74,25 +77,9 @@
     const listTab = button('exMobileList', L('题目列表', 'Problem list'), '', () => { mobileList = !mobileList; schedule(); });
     tabs.append(modelTab, questionTab, listTab); work.before(tabs);
     work.querySelector('.ex-left').addEventListener('click', e => { if (mobile() && e.target.closest('.ex-item')) { mobileList = false; mobileTab = 'questions'; schedule(); } });
-    const teacher = button('exTeacherMode', '', '', () => {
-      const enabled = !document.body.classList.contains('teacher-enabled');
-      document.body.classList.toggle('teacher-enabled', enabled);
-      if (!enabled && document.body.dataset.exmode === 'teacher') EL.EX.setMode('student');
-      updateTeacher();
-    });
-    document.querySelector('.appbar').append(teacher);
-    function updateTeacher() {
-      const enabled = document.body.classList.contains('teacher-enabled');
-      teacher.textContent = L(enabled ? '学生模式' : '教师模式', enabled ? 'Student mode' : 'Teacher mode');
-      teacher.title = teacher.textContent; teacher.setAttribute('aria-label', teacher.textContent); teacher.setAttribute('aria-pressed', String(enabled));
-      const authorOption = U.$('#modelSel').querySelector('option[value=add]');
-      if (authorOption) authorOption.hidden = !enabled;
-    }
-    if (document.body.dataset.exmode === 'teacher') document.body.classList.add('teacher-enabled');
-    updateTeacher();
     new MutationObserver(() => {
-      if (document.body.dataset.exmode === 'teacher') { document.body.classList.add('teacher-enabled'); mobileTab = 'questions'; mobileList = false; }
-      updateTeacher(); schedule();
+      if (document.body.dataset.exmode === 'teacher') { mobileTab = 'questions'; mobileList = false; }
+      schedule();
     }).observe(document.body, { attributes: true, attributeFilter: ['data-exmode'] });
     const describe = (node, label, pressed) => { node.title = label; node.setAttribute('aria-label', label); node.setAttribute('aria-pressed', String(pressed)); };
     function apply() {

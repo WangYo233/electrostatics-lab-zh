@@ -88,8 +88,8 @@
     setTimeout(() => { A.r.draw(); A.setMode(document.body.dataset.mode); }, 380);
   };
 
-  // 导出学习单（可打印 HTML）；teacher=true 时附参考答案与教学提示
-  A.exportWorksheet = function (teacher) {
+  // 导出学习单（可打印 HTML）；includeAnswers=true 时附答案与提示
+  A.exportWorksheet = function (includeAnswers) {
     const m = A.st.model, sub = A.st.sub, t = A.theoryOf(), ex = m.exercisesFor ? m.exercisesFor(sub) : m.exercises || [];
     const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const lines = n => '<div class="ln"></div>'.repeat(n);
@@ -101,7 +101,7 @@
       '.eqn{display:grid;grid-template-columns:minmax(3em,1fr) auto minmax(3em,1fr);align-items:center;margin:8px 0}.eqn-m{grid-column:2;text-align:center}.eqn-n{grid-column:3;justify-self:end;font-family:"Times New Roman",serif}math[display=block]{display:block math;margin:4px auto}' +
       '@media print{body{margin:0}h2{break-after:avoid}.st{break-inside:avoid}}</style></head><body>';
     html += U.watermarkHTML();
-    html += '<h1>' + esc(m.code + ' ' + m.title + (m.analytic ? ' · ' + EL.SUB08[sub].name : '')) + '　学习单' + (teacher ? '（教师版）' : '') + '</h1>';
+    html += '<h1>' + esc(m.code + ' ' + m.title + (m.analytic ? ' · ' + EL.SUB08[sub].name : '')) + '　学习单</h1>';
     const R = U.richMath;
     html += '<p>姓名 ________　班级 ________　日期 ________</p><h2>一、基础学习</h2><p>' + R(t.intro) + '</p>' +
       t.formulas.map((x, i) => EL.texEq(x.tex, i + 1) + '<p style="font-size:13px;color:#3a4a60"><b>式 (' + (i + 1) + ')</b>　' + R(x.where) + '</p>').join('');
@@ -110,13 +110,13 @@
     m.stages.forEach((s, i) => {
       html += '<div class="st"><h3>阶段 ' + (i + 1) + '　' + esc(s.title) + '</h3><p class="q"><b>探究问题：</b>' + R(s.q) + '</p><p><b>观察要点：</b>' + R(s.obs) + '</p>';
       html += '<div class="box"><b>我的预测：</b>' + lines(2) + '</div><p><b>记录要求：</b>' + R(s.rec) + '</p>' + lines(3);
-      if (teacher && s.hint) html += '<p class="ans">推理线索：' + R(s.hint) + '</p>';
+      if (includeAnswers && s.hint) html += '<p class="ans">推理线索：' + R(s.hint) + '</p>';
       html += '</div>';
     });
     if (!m.analytic) html += '<h3>场强合成记录（使用“分析”工作区中的场强合成向导）</h3><table><tr><th>观察点</th><th>各分场强的大小</th><th>先合成的一对分场强及其夹角</th><th>部分和 Σ₁、Σ₂</th><th>合场强</th></tr>' + '<tr><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(3) + '</table>';
     html += '<h2>预测与核对</h2>' + ex.map((e, i) => '<p class="q">' + (i + 1) + '. ' + R(e.q) + (e.options ? '<br>' + e.options.map(o => '□ ' + R(o)).join('　') : '　答：__________') +
-      (teacher ? '<br><span class="ans">答案：' + R(e.options ? e.a : U.fmt(e.a, 6)) + (e.why ? '。' + R(e.why) : '') + '</span>' : '') + '</p>').join('');
+      (includeAnswers ? '<br><span class="ans">答案：' + R(e.options ? e.a : U.fmt(e.a, 6)) + (e.why ? '。' + R(e.why) : '') + '</span>' : '') + '</p>').join('');
     html += '<h2>学习记录</h2><table><tr><th>配置 / 位置</th><th>预测</th><th>实测 V、E</th><th>解释 / 结论</th></tr>' + '<tr><td></td><td></td><td></td><td></td></tr>'.repeat(5) + '</table></body></html>';
-    U.download('学习单_' + m.code + '_' + m.title + (teacher ? '_教师版' : '') + '.html', html, 'text/html;charset=utf-8');
+    U.download('学习单_' + m.code + '_' + m.title + (includeAnswers ? '_含提示与答案' : '') + '.html', html, 'text/html;charset=utf-8');
   };
 })(window.EL);

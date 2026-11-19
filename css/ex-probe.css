@@ -72,6 +72,10 @@ body.ex .ex-tool-menu button:focus-visible { outline: 2px solid var(--accent); o
 body.ex .ex-tool-menu button:disabled { opacity: .45; cursor: default; }
 body.ex .ex-tool-menu [hidden] { display: none !important; }
 body.ex .ex-tool-menu .sb-layers { display: grid; gap: 4px; }
+body.ex .ex-layout-menu { gap: 2px; }
+body.ex .ex-layout-menu > hr { width: 100%; margin: 6px 0; border: 0; border-top: 1px solid var(--line); }
+body.ex .ex-menu-heading { padding: 6px 10px 2px; color: var(--muted); font-size: 12px; font-weight: 600; }
+body.ex .ex-layout-menu .ex-author-tools, body.ex .ex-layout-menu .ex-author-tools .btns { display: contents; }
 body.ex .ex-tool-menu #btnZin, body.ex .ex-tool-menu #btnZout { width: 100%; font-size: 14px; }
 body.ex .ex-tool-menu #exToggleLeft::before, body.ex .ex-tool-menu #exToggleRight::before, body.ex .ex-tool-menu #exToggleGuide::before { content: '✓'; width: 1em; opacity: 0; }
 body.ex .ex-tool-menu [aria-pressed=true]::before { opacity: 1 !important; }
@@ -85,3 +89,5 @@ body.ex .ex-tool-menu .sb-layers button.on::before { content: '✓'; margin-righ
 }
 
 @media (max-width: 720px) { body.ex .ex-panel-tools { flex-wrap: nowrap; gap: 4px; } body.ex .ex-panel-tools > button { flex: 0 0 auto; min-width: 0; padding: 7px 8px; white-space: nowrap; } body.ex .ex-panel-tools > .ex-layout-spacer { display: none; } }
+
+body.ex .ex-panel-tools > button[aria-pressed]::before { content: none; display: none; }

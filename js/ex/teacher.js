@@ -166,8 +166,8 @@
     return [h('label', { for: 'tTitle' }, '标题'), h('input.cell.wide#tTitle', { type: 'text', value: d.title, oninput: e => { d.title = e.target.value; } }),
       h('label', { for: 'tStem' }, '题干（留空时使用自动生成的题干）'), h('textarea.wide#tStem', { rows: 5, placeholder: auto, oninput: e => { d.stem = e.target.value; } }, d.stem || ''),
       h('label', { for: 'tNote' }, '补充说明'), h('input.cell.wide#tNote', { type: 'text', value: d.note || '', oninput: e => { d.note = e.target.value; } }),
-      h('div.btns', null, K.btn('保存题目', () => T.save(), 'primary'), K.btn('预览学生版', () => { if (!T.save(true)) return; X.setMode('student'); X.open(JSON.parse(JSON.stringify(T.d))); })),
-      h('div.btns', null, K.btn('导出学生版', () => { if (T.ready()) X.print(d, false); }), K.btn('导出教师版', () => { if (T.ready()) X.print(d, true); }), K.btn('导出 JSON', () => { if (T.ready()) U.download('题目添加_' + safe(d.title) + '.json', JSON.stringify(d, null, 1), 'application/json'); }))];
+      h('div.btns', null, K.btn('保存题目', () => T.save(), 'primary'), K.btn('预览题目', () => { if (!T.save(true)) return; X.setMode('student'); X.open(JSON.parse(JSON.stringify(T.d))); })),
+      h('div.btns', null, K.btn('导出学习单', () => { if (T.ready()) X.print(d, false); }), K.btn('导出含答案解析学习单', () => { if (T.ready()) X.print(d, true); }), K.btn('导出 JSON', () => { if (T.ready()) U.download('题目添加_' + safe(d.title) + '.json', JSON.stringify(d, null, 1), 'application/json'); }))];
   };
   T.save = function (quiet) {
     if (!T.ready()) return false;
@@ -193,18 +193,18 @@
   };
 
   // 打印学习单：选项用 A、B、C、D
-  X.print = function (pb, teacher) {
+  X.print = function (pb, includeAnswers) {
     const sol = X.solve(pb), esc = U.esc;
     let html = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>' + esc(pb.title) + '</title><style>body{font-family:"Times New Roman","Microsoft YaHei",serif;max-width:760px;margin:24px auto;padding:0 20px;line-height:1.7;color:#142033}h1{font-size:20px}.q{margin:14px 0}.ln{border-bottom:1px solid #9aa6b2;height:26px}.ans{color:#2c41ad;font-size:14px}.mut{color:#6a7a90}.ops{display:flex;flex-wrap:wrap;gap:4px 28px;margin:4px 0 0 1.6em}math,.rad{font-family:"Cambria Math","STIX Two Math","Latin Modern Math",serif}.rad{white-space:nowrap}.rad-b{border-top:.075em solid currentColor;padding:.06em .08em 0 .04em;margin-left:-.06em}.cap-tbl{border-collapse:collapse;margin:8px 0;font-size:13px}.cap-tbl th,.cap-tbl td{border:1px solid #9aa6b2;padding:3px 8px;text-align:center}math[display=block]{display:block math;margin:6px auto;text-align:center}</style></head><body>';
     html += U.watermarkHTML();
-    html += '<h1>' + esc(pb.title) + (teacher ? '（教师版）' : '') + '</h1><p class="mut">' + esc(X.modelName(pb)) + '</p><p>姓名 ________　班级 ________</p><div style="text-align:center">' + X.svg(pb, sol.R) + '</div><p>' + U.rich(pb.stem || X.stem(pb, sol.R)) + '</p>' + (pb.note ? '<p class="mut">' + U.rich(pb.note) + '</p>' : '');
+    html += '<h1>' + esc(pb.title) + '</h1><p class="mut">' + esc(X.modelName(pb)) + '</p><p>姓名 ________　班级 ________</p><div style="text-align:center">' + X.svg(pb, sol.R) + '</div><p>' + U.rich(pb.stem || X.stem(pb, sol.R)) + '</p>' + (pb.note ? '<p class="mut">' + U.rich(pb.note) + '</p>' : '');
     sol.ans.forEach((o, i) => {
-      html += '<div class="q"><b>(' + (i + 1) + ')</b> ' + U.rich(X.qText2(o.q, pb)) + (o.options ? '<div class="ops">' + o.options.map((x, j) => '<span>' + X.letter(j) + '. ' + U.rich(x) + '</span>').join('') + '</div>' : '') + (teacher ? '' : '<div class="ln"></div><div class="ln"></div>');
-      if (teacher && o.ok) html += '<p class="ans">答案：' + (o.options ? X.optLetter(o.options, X.rightOf(o)) + '. ' : '') + U.rich(o.answer) + '</p>' + X.explain(o).map(l => '<p class="ans">' + U.rich(l.t) + '</p>' + EL.VA.stepHTML(l)).join('') +
+      html += '<div class="q"><b>(' + (i + 1) + ')</b> ' + U.rich(X.qText2(o.q, pb)) + (o.options ? '<div class="ops">' + o.options.map((x, j) => '<span>' + X.letter(j) + '. ' + U.rich(x) + '</span>').join('') + '</div>' : '') + (includeAnswers ? '' : '<div class="ln"></div><div class="ln"></div>');
+      if (includeAnswers && o.ok) html += '<p class="ans">答案：' + (o.options ? X.optLetter(o.options, X.rightOf(o)) + '. ' : '') + U.rich(o.answer) + '</p>' + X.explain(o).map(l => '<p class="ans">' + U.rich(l.t) + '</p>' + EL.VA.stepHTML(l)).join('') +
         (o.distractors && o.distractors.length ? '<p class="mut">干扰项：' + o.distractors.map(x => (o.options ? X.optLetter(o.options, x.v) + '. ' : '') + U.rich(x.v) + '（' + esc(x.why.replace(/。$/, '')) + '）').join('；') + '。</p>' : '');
-      if (teacher && !o.ok) html += '<p class="mut">' + esc(o.err) + '</p>';
+      if (includeAnswers && !o.ok) html += '<p class="mut">' + esc(o.err) + '</p>';
       html += '</div>';
     });
-    U.download('学习单_' + safe(pb.title) + (teacher ? '_教师版' : '_学生版') + '.html', html + '</body></html>', 'text/html;charset=utf-8');
+    U.download('学习单_' + safe(pb.title) + (includeAnswers ? '_含答案解析' : '') + '.html', html + '</body></html>', 'text/html;charset=utf-8');
   };
 })(window.EL);

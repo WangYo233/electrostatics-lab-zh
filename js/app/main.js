@@ -112,7 +112,7 @@
     U.$('#rec').innerHTML = U.richMath(s.rec);
     U.$('#hint').innerHTML = U.richMath(s.hint || (sub ? sub.intro : ''));
     U.$('#hintBox').hidden = !(s.hint || sub);
-    // 教学提示（教师）：阶段数据中有 teacher 字段时显示
+    // 阶段提供补充提示时，所有用户均可查看
     U.$('#teacher').innerHTML = s.teacher ? U.richMath(s.teacher) : '';
     U.$('#teacherBox').hidden = !s.teacher;
     U.$('#stageActions').replaceChildren(...(s.actions || []).map(a => K.btn(a.label, () => { a.run(A.c); A.update(); A.renderPanel(); }, 'primary')));

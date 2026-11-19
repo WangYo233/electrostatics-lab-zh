@@ -49,8 +49,8 @@
           <button type="button" id="btnImport" role="menuitem">导入 JSON 文件</button>
           <button type="button" id="btnPng" role="menuitem">保存画板图片 <kbd>PNG</kbd></button>
           <hr>
-          <button type="button" id="btnSheet" role="menuitem">导出学习单 <kbd>学生版</kbd></button>
-          <button type="button" id="btnSheetT" role="menuitem">导出学习单 <kbd>教师版，含答案</kbd></button>
+          <button type="button" id="btnSheet" role="menuitem">导出学习单</button>
+          <button type="button" id="btnSheetT" role="menuitem">导出含提示与答案的学习单</button>
         </div>
       </details>
       <input type="file" id="importFile" accept=".json,application/json" hidden>
@@ -129,7 +129,7 @@
           <div class="g-item"><h3>记录要求</h3><p id="rec"></p></div>
           <details class="g-item" id="hintBox"><summary>推理线索</summary><p id="hint"></p></details>
           <div id="stageActions" class="btns"></div>
-          <details class="g-item teacher" id="teacherBox" hidden><summary>教学提示（教师）</summary><p id="teacher"></p></details>
+          <details class="g-item" id="teacherBox" hidden><summary>补充提示</summary><p id="teacher"></p></details>
         </div>
       </section>
       <section class="insp" data-for="analyze">

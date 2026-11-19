@@ -8,7 +8,7 @@
     if (!now && document.body.dataset.exmode !== m && EL.motion) return EL.motion.swap(() => X.setMode(m, true));
     document.body.dataset.exmode = m;
     const nav = U.$('#modelSel');
-    if (nav) nav.value = m === 'teacher' ? 'add' : 'problems';
+    if (nav) nav.value = 'problems';
     document.title = (m === 'teacher' ? '题目添加' : '例题探究') + ' · 静电学实验室';
     if (m === 'teacher') { if (X.stopPath) X.stopPath(); X.S.f = null; U.$('#caption').hidden = true; }
     if (m === 'teacher') { if (!X.T.d) X.T.start(); else X.T.render(); }
@@ -98,9 +98,9 @@
     if (r.model) X.openModel(r.model); else X.open(X.BUILTIN[0]);
     if (r.mode === 'teacher') X.T.start(null, r.model ? (X.firstItem(r.model) || {}).key : null);
     const modelSel = U.$('#modelSel'), groups = [['一、基础模型', [1, 2]], ['二、对称模型', [4, 6, 5]], ['三、拓展与创作', [7, 8, 3]], ['四、例题与题目', []]];
-    modelSel.replaceChildren(...groups.map(([title, ids], i) => h('optgroup', { label: title }, ids.map(id => h('option', { value: String(id) }, X.LABS[id].code + ' ' + X.LABS[id].title)).concat(i === 3 ? [h('option', { value: 'problems' }, '例题探究'), h('option', { value: 'add' }, '题目添加')] : []))));
-    modelSel.value = r.mode === 'teacher' ? 'add' : 'problems';
-    modelSel.addEventListener('change', e => { const v = e.target.value; if (v === 'problems') { X.setMode('student'); X.open(X.BUILTIN[0]); } else if (v === 'add') location.href = 'examples.html?mode=add'; else location.href = 'lab.html?m=' + v; });
+    modelSel.replaceChildren(...groups.map(([title, ids], i) => h('optgroup', { label: title }, ids.map(id => h('option', { value: String(id) }, X.LABS[id].code + ' ' + X.LABS[id].title)).concat(i === 3 ? [h('option', { value: 'problems' }, '例题探究')] : []))));
+    modelSel.value = 'problems';
+    modelSel.addEventListener('change', e => { const v = e.target.value; if (v === 'problems') { X.setMode('student'); X.open(X.BUILTIN[0]); } else location.href = 'lab.html?m=' + v; });
     X.setMode(r.mode, true);
   });
 })(window.EL);

@@ -150,9 +150,7 @@ body.ex .ex-work.left-off > .ex-left, body.ex .ex-work.right-off > .ex-right, .e
 }
 
 /* Student work stays separate from the optional authoring controls. */
-body.ex:not(.teacher-enabled) .ex-author-tools,
-body.ex:not(.teacher-enabled) .ex-author-only { display: none; }
-body.ex #exTeacherMode { flex: none; min-height: 36px; padding: 6px 12px; border: 1px solid #8797b0; border-radius: 7px; background: #24324a; color: #f1f5fb; font: inherit; font-size: 13px; }
+body.ex .ex-author-only { display: none; }
 .ex-mobile-tabs { display: none; }
 .ex .exp-step { border: 1px solid var(--line); border-radius: 7px; margin: 8px 0; padding: 0 10px; }
 .ex .exp-step summary { padding: 10px 0; cursor: pointer; font-weight: 600; line-height: 1.45; }
@@ -162,7 +160,6 @@ body.ex #exTeacherMode { flex: none; min-height: 36px; padding: 6px 12px; border
 .ex .cap-curve-wrap { height: 160px; flex: none; }
 @media (max-width: 720px) {
  body.ex .appbar .exp { order: 2; flex: 1 1 100%; }
- body.ex #exTeacherMode { order: 1; margin-left: auto; }
  body.ex .ex-mobile-tabs { display: flex; position: sticky; top: 0; z-index: 25; gap: 6px; flex-wrap: wrap; padding: 8px; border-bottom: 1px solid var(--line); background: var(--surface); }
  body.ex .ex-mobile-tabs button { flex: 1; min-height: 44px; border: 1px solid var(--line); border-radius: 7px; padding: 8px; color: var(--ink); background: var(--surface); font: inherit; font-size: 14px; }
  body.ex .ex-mobile-tabs [aria-current=page], body.ex .ex-mobile-tabs [aria-expanded=true] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-2); }
@@ -173,7 +170,7 @@ body.ex #exTeacherMode { flex: none; min-height: 36px; padding: 6px 12px; border
  body.ex .ex-work > .view.has-guide[data-guide-dock] { min-height: 900px; height: calc(100svh - 170px); grid-template-rows: var(--ex-toolbar-height, 180px) minmax(320px, 1fr) minmax(320px, var(--guide-extent, 380px)); }
  body.ex .ex-work > .view.guide-collapsed[data-guide-dock], body.ex .ex-work > .view.model-only[data-guide-dock] { min-height: 650px; grid-template-rows: var(--ex-toolbar-height, 180px) minmax(320px, 1fr); }
  body.ex #exToggleLeft, body.ex #exToggleRight { display: none; }
- body.ex .btn, body.ex .btn.mini, body.ex .ex-item, body.ex .guide-grip button, body.ex .caption .btn, body.ex #exTeacherMode { min-height: 44px; }
+ body.ex .btn, body.ex .btn.mini, body.ex .ex-item, body.ex .guide-grip button, body.ex .caption .btn { min-height: 44px; }
  body.ex .ex-left .btns { flex-wrap: wrap; }
  body.ex .ex-left .btns > .btn { flex: 1 1 130px; white-space: normal; }
  body.ex select, body.ex input:not([type=checkbox]):not([type=range]):not([type=color]) { min-height: 44px; }
