@@ -11,12 +11,12 @@
       panels.modelWidth = panels.modelHeight = panels.guideWidth = panels.guideHeight = 0;
       U.store.set('ex:layoutVersion', 2);
     }
-    let focusPanels = null, mobileList = false, mobileTools = false, mobileTab = document.body.dataset.exmode === 'teacher' ? 'questions' : 'model';
+    let focusPanels = null, mobileList = false, mobileTab = document.body.dataset.exmode === 'teacher' ? 'questions' : 'model';
     const mobile = () => innerWidth <= 720;
     const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
     const save = () => { U.store.set('ex:layout', layout); U.store.set('ex:panels', panels); };
     let pending = 0;
-    const schedule = () => { if (!pending) pending = requestAnimationFrame(() => { pending = 0; apply(); }); };
+    const schedule = () => { if (!pending) pending = requestAnimationFrame(() => { pending = 0; setToolbarLabels(); apply(); }); };
     const button = (id, icon, label, action) => U.h('button', { id, type: 'button', title: label, 'aria-label': label, onclick: action }, icon);
     const controls = U.h('div.ex-layout-tools', { 'aria-label': L('画板工具', 'Canvas tools') });
     const group = U.h('div.ex-panel-tools', { role: 'toolbar', 'aria-label': L('面板布局', 'Panel layout') });
@@ -40,11 +40,34 @@
       focusPanels = !cap.hidden && innerWidth > 720 ? { left: true, right: true } : null;
       view.classList.remove('model-only'); schedule(); save();
     });
-    const mobileToolsButton = button('exMobileTools', L('画板工具', 'Tools'), '', () => { mobileTools = !mobileTools; schedule(); });
-    group.append(left, right, guide, mobileToolsButton, U.h('span.ex-layout-spacer'), reset);
     const tools = stage.querySelector('.tools'); tools.className = 'ex-view-tools'; tools.append(only);
     const display = stage.querySelector('.stagebar'); display.className = 'ex-display-tools';
-    controls.append(group, tools, display); view.prepend(controls);
+    display.querySelector('.sb-mid').remove();
+    function menu(id, label, content) {
+      const panel = U.h('div.ex-tool-menu', { id: id + 'Panel', popover: 'auto', 'aria-label': label }, content);
+      const trigger = U.h('button', { id, type: 'button', class: 'ex-menu-trigger', 'aria-expanded': 'false', 'aria-controls': panel.id, popovertarget: panel.id }, label + ' ▾');
+      panel.addEventListener('beforetoggle', e => {
+        trigger.setAttribute('aria-expanded', String(e.newState === 'open'));
+        if (e.newState === 'open') {
+          const r = trigger.getBoundingClientRect();
+          panel.style.left = Math.max(8, Math.min(r.left, innerWidth - Math.min(280, innerWidth - 16) - 8)) + 'px';
+          panel.style.top = Math.min(r.bottom + 6, innerHeight - 240) + 'px';
+        }
+      });
+      panel.addEventListener('click', e => {
+        if (id !== 'exDisplayMenu' && e.target.closest('button') && !e.target.closest('#btnZin,#btnZout')) panel.hidePopover();
+      });
+      view.append(panel); return trigger;
+    }
+    const full = U.$('#btnFull');
+    U.$('#btnZin').textContent = L('放大', 'Zoom in'); U.$('#btnZout').textContent = L('缩小', 'Zoom out');
+    const compactLabels = [[U.$('#exViewMenu'), L('视图', 'View')], [U.$('#exDisplayMenu'), L('显示', 'Show')], [U.$('#exLayoutMenu'), L('布局', 'Panels')], [U.$('#exProbeRoute'), L('探针', 'Route')], [full, L('全屏', 'Full')]];
+    const setToolbarLabels = () => compactLabels.forEach(([button, label]) => { if (button) button.textContent = mobile() ? label : label + (button.id.startsWith('ex') && button.id !== 'exProbeRoute' ? ' ▾' : ''); });
+    group.append(menu('exViewMenu', L('视图', 'View'), tools), menu('exDisplayMenu', L('显示', 'Display'), display),
+      menu('exLayoutMenu', L('布局', 'Layout'), U.h('div.ex-layout-menu', null, left, right, guide, reset)),
+      U.h('span.ex-layout-spacer'), full);
+    controls.append(group); view.prepend(controls);
+    setToolbarLabels();
     const tabs = U.h('nav.ex-mobile-tabs', { 'aria-label': L('例题页面', 'Problem view') });
     const modelTab = button('exMobileModel', L('模型', 'Model'), '', () => { mobileTab = 'model'; schedule(); });
     const questionTab = button('exMobileQuestions', L('题目', 'Questions'), '', () => { mobileTab = 'questions'; schedule(); });
@@ -73,8 +96,6 @@
     }).observe(document.body, { attributes: true, attributeFilter: ['data-exmode'] });
     const describe = (node, label, pressed) => { node.title = label; node.setAttribute('aria-label', label); node.setAttribute('aria-pressed', String(pressed)); };
     function apply() {
-      view.classList.toggle('mobile-tools-open', mobileTools);
-      mobileToolsButton.setAttribute('aria-expanded', String(mobileTools));
       view.style.setProperty('--mobile-model-height', Math.max(320, panels.modelHeight || 320) + 'px');
       const room = Math.max(420, work.clientWidth - 340), scale = Math.min(1, room / (layout.left + layout.right));
       work.style.setProperty('--ex-left', Math.max(160, layout.left * scale) + 'px');
