@@ -8,6 +8,7 @@
   const SUBS = '₀₁₂₃₄₅₆₇₈₉', sub = i => String(i).split('').map(d => SUBS[+d]).join('');
   const deg = x => x * 180 / Math.PI, f4 = x => U.fmt(x, 4), r1 = x => Math.round(x * 10) / 10;
   const tol = (a, b) => Math.abs(a - b) <= 1e-7 * Math.max(Math.abs(a), Math.abs(b), 1e-12);
+  const angleLabel = th => [0, 30, 45, 60, 90, 120, 135, 150, 180].some(x => Math.abs(x - th) < 1e-7) ? 'θ=' + r1(th) + '°' : 'θ';
   VA.f4 = f4;
   VA.ang = (a, b) => deg(Math.acos(U.clamp(V.dot(a, b) / (V.len(a) * V.len(b)), -1, 1)));
   // 夹角选项：正确值 + 两个相差明显的干扰项
@@ -71,7 +72,7 @@
     return length < 1e-12 ? [0] : items.map(item => V.dot(item.E, total) / length);
   };
   const tableCell = x => { const n = niceX(x); return n ? n.text : '≈' + f4(x); };
-  const tableNumber = x => typeof x !== 'number' || !Number.isFinite(x) ? U.fmt(x) : Number.isInteger(x) ? String(x) : '≈' + f4(x);
+  const tableNumber = tableCell;
   // 方向相同且重合的矢量：沿垂直方向错开一点，使每个矢量都看得见（返回与 vs 等长的偏移数组；.rank 为组内序号）
   VA.offsets = function (vs, gap) {
     const out = vs.map(() => [0, 0, 0]), seen = new Set();
@@ -135,7 +136,7 @@
     return null;
   };
   // ---- 对称分组：大小相等的分场成组（同组 ≥3 且共面 → 平面组；否则两两成对），其余为“剩余组” ----
-  VA.group = function (parts, P) {
+  VA.group = function (parts, P, named) {
     const used = new Set(), groups = [];
     const cls = [];
     for (const x of parts) { const c = cls.find(k => tol(k[0].mag, x.mag)); if (c) c.push(x); else cls.push([x]); }
@@ -143,6 +144,10 @@
     for (const c of cls) {
       if (c.length < 2) continue;
       if (c.length >= 3) { const pl = VA.planeOf(P, c.map(x => x.p)); if (pl && pl.n) { groups.push({ type: 'plane', items: c, n: pl.n }); c.forEach(x => used.add(x)); continue; } }
+      if (c.length === 3 && named) {
+        const known = c.flatMap((a, i) => c.slice(i + 1).map(b => [a, b])).find(pair => named.some(n => V.dist(n.p, V.lerp(pair[0].p, pair[1].p, 0.5)) < 1e-9));
+        if (known) c.sort((a, b) => Number(known.includes(b)) - Number(known.includes(a)));
+      }
       for (let i = 0; i + 1 < c.length; i += 2) { groups.push({ type: 'pair', items: [c[i], c[i + 1]] }); used.add(c[i]); used.add(c[i + 1]); }
     }
     const rest = parts.filter(x => !used.has(x));
@@ -159,7 +164,7 @@
   // ---- 合成方案：返回步骤数组（每步 {id, title, text, tex, ask, rows, view, hide}），并附 .d ----
   VA.plan = function (o) {
     const parts = o.parts, P = o.P, named = o.named || [], unit = o.unit || 'kQ/L²', rU = o.rUnit || 'L', pn = o.pName || 'P';
-    const T = VA.sum(parts), groups = VA.group(parts, P), hide = o.hide ? ['lines', 'contours', 'surfaces', 'flow'] : null;
+    const T = VA.sum(parts), groups = VA.group(parts, P, named), hide = o.hide ? ['lines', 'contours', 'surfaces', 'flow'] : null;
     const d = { P, parts, groups, T, named, pn, unit, rU, partial: !!o.partial }, steps = [];
     const dir = v => VA.describe(v, named);
     steps.push({ id: 'list', title: '列出各分场强', text: (o.partial ? '这次只合成在“自由合成”中选中的 ' + parts.map(x => x.n).join('、') + '，结果是它们的矢量和，不是 ' + pn + ' 点的合场强。' : '') + '每个场源电荷单独在 ' + pn + ' 点产生的电场强度称为分场强，大小为 |E_i| = k|q_i|/r_i²。正电荷的分场强背离该电荷，负电荷的分场强指向该电荷。',
@@ -202,7 +207,7 @@
     return { id: 'angle', g, title: '求 ' + a.n + ' 与 ' + b.n + ' 的夹角', th,
       text: '在三角形 ' + a.label + pn + b.label + ' 中，由余弦定理求出 ' + geoName + '。' +
         (same ? '两个场源电荷同号，' + a.n + ' 与 ' + b.n + ' 的夹角等于 ' + geoName + '。' : '两个场源电荷异号，' + a.n + ' 与 ' + b.n + ' 的夹角等于 ' + geoName + ' 的补角。'),
-      tex: R`\cos\angle ${a.label}${pn}${b.label}=\frac{r_{${a.label}}^2+r_{${b.label}}^2-|${a.label}${b.label}|^2}{2r_{${a.label}}r_{${b.label}}}=${VA.texV(cg)}\quad\theta=${same ? '' : '180^\\circ-'}\angle ${a.label}${pn}${b.label}${VA.valueEq(th)}^\circ`,
+      tex: R`r_{${a.label}}${VA.valueEq(a.r, d.rU)},\quad r_{${b.label}}${VA.valueEq(b.r, d.rU)},\quad |${a.label}${b.label}|${VA.valueEq(ab, d.rU)}\qquad\cos\angle ${a.label}${pn}${b.label}=\frac{r_{${a.label}}^2+r_{${b.label}}^2-|${a.label}${b.label}|^2}{2r_{${a.label}}r_{${b.label}}}=${VA.texV(cg)}\qquad\cos\theta=${same ? '' : '-'}\cos\angle ${a.label}${pn}${b.label}${VA.valueEq(same ? cg : -cg)}`,
       view: inl ? V.cross(V.sub(a.p, d.P), V.sub(b.p, d.P)) : null };
   };
   // ---- 相似三角形法：两个场源电荷到观察点的距离相等、电荷量大小相同、且与观察点不共线 ----
@@ -235,7 +240,7 @@
       text = pos.n + ' 沿由 ' + pos.label + ' 指向 ' + pn + ' 的方向，' + neg.n + ' 沿由 ' + pn + ' 指向 ' + neg.label + ' 的方向，两者大小都是 E₀，而 ' + pn + pos.label + ' = ' + pn + neg.label + ' = r。' +
         '把 ' + neg.n + ' 平移到 ' + pos.n + ' 的末端，矢量三角形的两边分别平行于 ' + pos.label + pn + '、' + pn + neg.label + '，且两边之比等于 ' + pn + pos.label + ' : ' + pn + neg.label + '，所以它与三角形 ' + tri + ' 相似，相似比为 E₀/r。' +
         '由相似得对应角相等：' + nm + ' 与 ' + pos.n + ' 的夹角等于 ' + base + '，两分场强的夹角 θ 等于 ' + apexN + ' 的补角。';
-      tex = R`\cos\angle ${pn}${pos.label}${neg.label}=\frac{|${pos.label}${neg.label}|/2}{r}=${VA.texV(s.ab / 2 / s.r)}\qquad\cos\angle ${s.a.label}${pn}${s.b.label}=${VA.texV((2 * s.r * s.r - s.ab * s.ab) / (2 * s.r * s.r))}\quad\theta=180^\circ-\angle ${s.a.label}${pn}${s.b.label}${VA.valueEq(s.th)}^\circ`;
+      tex = R`|${pos.label}${neg.label}|${VA.valueEq(s.ab, d.rU)}\qquad\frac{|${g.tex}|}{E_0}=\frac{|${pos.label}${neg.label}|}{r}${VA.valueEq(s.ab / s.r)}`;
       ask = { q: nm + ' 的方向与哪个方向相同？', options: [right, '由 ' + neg.label + ' 指向 ' + pos.label, '由 ' + pn + ' 指向 ' + pos.label + neg.label + ' 的中点'].sort(), a: right,
         why: '矢量三角形与三角形 ' + tri + ' 相似，' + nm + ' 对应边 ' + pos.label + neg.label + '，所以 ' + nm + ' 的方向' + right + '。' };
     } else {
@@ -243,10 +248,11 @@
       text = '设 ' + mn + ' 为 ' + s.a.label + s.b.label + ' 的中点。两分场强大小都是 E₀，以它们为邻边的平行四边形是菱形，对角线 ' + nm + ' 平分两分场强的夹角。' +
         '半个菱形组成的三角形（边为 ' + s.a.n + ' 与 ' + nm + '/2）与三角形 ' + tri + ' 相似，相似比为 E₀/r。' +
         '由相似得对应角相等：' + nm + ' 与 ' + s.a.n + ' 的夹角等于 ∠' + s.a.label + pn + mn + '，两分场强的夹角 θ 等于 ' + apexN + '。';
-      tex = R`|${pn}${mn}|=\sqrt{r^2-(|${s.a.label}${s.b.label}|/2)^2}${VA.valueEq(s.pm, d.rU)}\qquad\cos\angle ${s.a.label}${pn}${mn}=\frac{|${pn}${mn}|}{r}=${VA.texV(s.pm / s.r)}\quad\theta=\angle ${s.a.label}${pn}${s.b.label}${VA.valueEq(s.th)}^\circ`;
+      tex = R`|${pn}${mn}|=\sqrt{r^2-(|${s.a.label}${s.b.label}|/2)^2}${VA.valueEq(s.pm, d.rU)}\qquad\frac{|${g.tex}|}{2E_0}=\frac{|${pn}${mn}|}{r}${VA.valueEq(s.pm / s.r)}`;
       ask = { q: nm + ' 的方向与哪个方向相同？', options: [right, toP ? '由 ' + pn + ' 指向 ' + mn : '由 ' + mn + ' 指向 ' + pn, '由 ' + s.a.label + ' 指向 ' + s.b.label].sort(), a: right,
         why: '菱形的对角线 ' + nm + ' 与三角形 ' + tri + ' 中的边 ' + mn + pn + ' 对应，两个场源电荷' + (toP ? '都带正电，所以 ' : '都带负电，所以 ') + nm + ' 的方向' + right + '。' };
     }
+    text += '先用勾股定理求长度，再由相似三角形的对应边之比合成，不需要先求非特殊角的度数。';
     tex = R`r=|${pn}${s.a.label}|=|${pn}${s.b.label}|${VA.valueEq(s.r, d.rU)},\quad E_0=|\vec ${s.a.n}|=|\vec ${s.b.n}|=\frac{k|q|}{r^2}${VA.valueEq(s.E, d.unit)}\qquad ` + tex;
     return { id: 'similar', g, sim: s, th: s.th, title: '用相似三角形求 ' + s.a.n + ' 与 ' + s.b.n + ' 的合成', text, tex, ask,
       setup: '设 ' + mn + ' 为线段 ' + s.a.label + s.b.label + ' 的中点。',
@@ -424,7 +430,7 @@
       const [a, b] = s.g.items;
       MH.tri(out, [P, M(a.p), M(b.p)], C.pot, 0.08);
       MH.arc(out, P, V.sub(M(a.p), P), V.sub(M(b.p), P), Rr * 0.1, '∠' + a.label + d.pn + b.label);
-      MH.arc(out, P, a.E, b.E, Rr * 0.06, 'θ=' + r1(s.th) + '°');
+      MH.arc(out, P, a.E, b.E, Rr * 0.06, angleLabel(s.th));
     }
     // 相似三角形：几何三角形（浅色）与首尾相接的矢量三角形
     if (s && (s.id === 'similar' || s.id === 'pairSum') && s.sim) {
@@ -440,7 +446,7 @@
         MH.mark(out, M(m.mid), m.mn, C.mark, Rr * 0.018);
         MH.dash(out, V.add(P, S(m.a.E)), V.add(P, S(g.S))); MH.dash(out, V.add(P, S(m.b.E)), V.add(P, S(g.S)));
       }
-      if (s.id === 'similar') { MH.arc(out, P, m.a.E, m.b.E, Rr * 0.06, 'θ=' + r1(m.th) + '°'); MH.dash(out, P, V.add(P, S(g.S)), C.sum); }
+      if (s.id === 'similar') { MH.arc(out, P, m.a.E, m.b.E, Rr * 0.06, angleLabel(m.th)); MH.dash(out, P, V.add(P, S(g.S)), C.sum); }
     }
     if (s && s.id === 'plane') MH.tri(out, s.g.items.map(x => M(x.p)), C.pot, 0.14);
     steps.slice(0, k + 1).forEach(st => {

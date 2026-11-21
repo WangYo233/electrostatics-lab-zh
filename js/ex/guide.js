@@ -84,7 +84,7 @@
     if (p.special?.kind === 'median' && pb.tpl === 'tri' && q.a === 'G' && q.b === 'M') geometry = R`h=\sqrt{a^2-(a/2)^2}=\frac{\sqrt3a}{2},\quad\ell=GM=\frac h3=\frac{\sqrt3a}{6}\qquad ` + geometry;
     if (p.special?.kind === 'tetra' && pb.tpl === 'tetra' && q.a === 'P' && q.b === 'C') geometry = R`PA=PB=\frac a2,\quad PC=PD=\sqrt{a^2-(a/2)^2}=\frac{\sqrt3a}{2}=\ell\qquad ` + geometry;
     if (p.special?.kind === 'triangleMedianFull') geometry = R`AM=\frac{\sqrt3a}{2}=\ell,\quad s=\frac{AX}{AM},\quad G:\ s=\frac23,\quad 0<s\le1\qquad ` + geometry;
-    if (p.special?.kind === 'trianglePN') geometry = R`AN=BN,\quad PN=\frac{\sqrt3a}{2}=\ell,\quad AN=BN=\frac a2,\quad CN=\frac{\sqrt3a}{2}\qquad ` + geometry;
+    if (p.special?.kind === 'trianglePN') geometry = (q.a === 'P' && q.b === 'M' ? R`BM=CM,\quad PM=\frac{\sqrt3a}{2}=\ell,\quad BM=CM=\frac a2,\quad AM=\frac{\sqrt3a}{2}\qquad ` : R`AN=BN,\quad PN=\frac{\sqrt3a}{2}=\ell,\quad AN=BN=\frac a2,\quad CN=\frac{\sqrt3a}{2}\qquad `) + geometry;
     const steps = [{ id: 'pathGeometry', title: L('建立路径参数与几何距离', 'Define the path parameter and distances'),
       text: L('令 s 为起点到 X 的距离与路径总长之比。先用已知坐标或几何关系确定路径长度和方向；后续所有场强和电势都在同一个 X(s) 处计算。长度采用题目的单位。', 'Let s be the fraction of the path from the start to X. Determine the path length and direction from the known geometry. All subsequent fields and potentials are evaluated at the same X(s), in the problem’s units.'), tex: geometry }];
     if (!model.analytic) {
@@ -130,7 +130,9 @@
       critical += L('完整中线包含中心 G 和 G→M 段内的另一个驻点。把 t=GX/GM=3s−2 代入原中线方程，可得 s=2/3 与 s≈0.856479；按下表分别检查三个区间，不能把整段误判为先升后降。A 处为正点源奇点，s=0 不属于电势定义域。', 'The full median contains the center G and another stationary point between G and M. Substituting t=GX/GM=3s−2 gives s=2/3 and s≈0.856479. Check all three intervals in the table. The positive point source at A excludes s=0 from the potential domain.');
       criticalTex += R`\qquad s_G=\frac23,\quad t=3s-2,\quad s_*=\frac{2+0.5694367096}{3}\approx0.8564789032`;
     }
-    if (p.special?.kind === 'trianglePN') critical += L('N 是 AB 中点，两电荷的距离贡献相同，先合并 A、B 两项，再保留 C 项。求导后在 0<s<1 内寻找变号根，并检查其两侧导数；此处零的是沿 PN 的分量，不应仅由曲线极值断言三维合场强为零。', 'N is the midpoint of AB, so combine the equal-distance A and B terms before adding C. Solve for the derivative sign change in 0<s<1 and check both sides. A stationary potential here sets the PN component to zero; it does not by itself prove that the full three-dimensional field vanishes.');
+    if (p.special?.kind === 'trianglePN') critical += q.a === 'P' && q.b === 'M'
+      ? L('M 是 BC 中点，两电荷的距离贡献相同，先合并 B、C 两项，再保留 A 项。求导后在 0<s<1 内寻找变号根，并检查其两侧导数；此处零的是沿 PM 的分量，不应仅由曲线极值断言三维合场强为零。', 'M is the midpoint of BC, so combine the equal-distance B and C terms before adding A. Solve for the derivative sign change in 0<s<1 and check both sides. A stationary potential here sets the PM component to zero; it does not by itself prove that the full three-dimensional field vanishes.')
+      : L('N 是 AB 中点，两电荷的距离贡献相同，先合并 A、B 两项，再保留 C 项。求导后在 0<s<1 内寻找变号根，并检查其两侧导数；此处零的是沿 PN 的分量，不应仅由曲线极值断言三维合场强为零。', 'N is the midpoint of AB, so combine the equal-distance A and B terms before adding C. Solve for the derivative sign change in 0<s<1 and check both sides. A stationary potential here sets the PN component to zero; it does not by itself prove that the full three-dimensional field vanishes.');
     if (pb.tpl === 'tri' && q.a === 'P' && q.b === 'G' && p.active.length === 1 &&
         p.sources.length === 3 && p.sources.every(x => x.q > 0 && close(x.q, p.sources[0].q))) {
       critical = L('PG 垂直于等边三角形平面，G 是三角形中心。沿 P→G，动点到 A、B、C 的距离始终相等且逐渐减小，因此三个正电荷的电势贡献同时增大。由下式可知开区间内导数为正，电势一直升高；G 是这条路径的最大值端点，G 处合场强为零，曲线在此变平。', 'PG is perpendicular to the triangle plane and G is its center. Along P to G, the equal distances to A, B and C decrease, so all three positive potential contributions increase. The derivative is positive in the open interval: potential increases throughout. G is the maximum endpoint of this path, where the total electric field and the terminal slope are zero.');
@@ -164,7 +166,7 @@
     criticalStep.text = L('观察曲线和沿路径场强，记录曲线变平的位置。该处 E∥=0，并不一定表示三维合场强为零。再比较这些位置两侧的电势变化。', 'Compare the curve with the field along the path and record the horizontal tangents. Here E∥=0; the full three-dimensional field need not be zero. Compare the potential trend on both sides.');
     criticalStep.tex = R`E_{\parallel}=0`;
     criticalStep.rows = [[L('路径比例 s', 'Path fraction s'), L('位置说明', 'Location')], ...(p.roots.length ? p.roots.map(value => [Math.abs(value - 2 / 3) < 1e-8 && p.special?.kind === 'triangleMedianFull' ? '2/3' : C(value), Math.abs(value - 2 / 3) < 1e-8 && p.special?.kind === 'triangleMedianFull' ? L('三角形中心 G', 'Triangle center G') : L('曲线的水平切线位置', 'Horizontal tangent on the curve')]) : [[L('无内部变号驻点', 'No interior turning point'), L('同时检查端点与边界', 'Also check endpoints and boundaries')]])];
-    if (p.special?.kind === 'triangleMedianFull') criticalStep.text = L('曲线在中心 G（s=2/3）及 G 到 M 之间的一个位置（s≈0.8565）变平。G 是三角形内的对称位置，合场强为零；另一个位置仅沿 AM 的场强分量为零。比较两侧曲线，即可判断分段变化。', 'The curve is horizontal at the center G (s=2/3) and once between G and M (s≈0.8565). Symmetry makes the total field zero at G. At the other location only the AM component is zero. Compare the curve on either side to identify each interval’s trend.');
+    if (p.special?.kind === 'triangleMedianFull') criticalStep.text = L('先由对称性确定中心 G（AG/AM=2/3）处合场强为零，再观察 G 到 M 之间的曲线：它还会变平一次。比较这两处左右的升降，就能分段判断变化，无须手算第二个位置的小数。第二处仅沿 AM 的场强分量为零。', 'Symmetry first gives zero net field at G (AG/AM=2/3). Observe the curve between G and M: it becomes horizontal once more. Compare the rise and fall on either side to identify the intervals; no decimal root calculation is needed. Only the AM component vanishes at the second location.');
     if (pb.tpl === 'tri' && q.a === 'P' && q.b === 'G' && p.active.length === 1 && p.sources.length === 3 && p.sources.every(x => x.q > 0 && close(x.q, p.sources[0].q))) {
       criticalStep.text = L('沿 P→G，动点到 A、B、C 的距离始终相等且不断减小，三个正电荷的电势贡献同时增大。电势一直升高，到 G 时曲线变平；G 是这段路径的最大值端点。', 'Along P to G, the equal distances to A, B and C decrease, so all three positive potential contributions increase. Potential rises throughout and the curve becomes horizontal at G, the maximum endpoint of this path.');
       criticalStep.rows = [[L('位置', 'Location'), L('曲线变化', 'Curve')], ['P→G', L('一直升高', 'Increases throughout')], ['G', L('最大值端点，切线水平', 'Maximum endpoint; horizontal tangent')]];
@@ -172,8 +174,14 @@
     const conclusionStep = steps.find(st => st.id === 'pathConclusion');
     conclusionStep.advanced = { text: conclusionStep.text, rows: conclusionStep.rows };
     conclusionStep.text = L('按路径顺序，逐段比较电势曲线的升降，得到：', 'Read the intervals from start to end to obtain: ') + answer.answer + L('。若端点是点电荷所在位置，只讨论靠近它时的变化，不把该点当成有限电势。', '. A point-charge endpoint is a limiting position, not a finite potential value.');
-    const bound = value => Math.abs(value - 2 / 3) < 1e-8 && p.special?.kind === 'triangleMedianFull' ? '2/3' : C(value);
-    conclusionStep.rows = [[L('路径比例区间', 'Path fraction interval'), L('电势变化', 'Potential trend')], ...p.intervals.map(i => [bound(i.a) + ' < s < ' + bound(i.b), Math.abs(i.derivative) < 1e-10 ? L('不变', 'Constant') : i.derivative > 0 ? L('升高', 'Increasing') : L('降低', 'Decreasing')])];
+    const bound = value => {
+      if (Math.abs(value) < 1e-8) return q.a;
+      if (Math.abs(value - 1) < 1e-8) return q.b;
+      if (Math.abs(value - 2 / 3) < 1e-8 && p.special?.kind === 'triangleMedianFull') return 'G';
+      const index = p.roots.findIndex(root => Math.abs(root - value) < 1e-8);
+      return index >= 0 ? L('曲线转折点 ', 'Turning point ') + (index + 1) : 's=' + C(value);
+    };
+    conclusionStep.rows = [[L('路径区段（结合曲线）', 'Path segment (see curve)'), L('电势变化', 'Potential trend')], ...p.intervals.map(i => [bound(i.a) + ' → ' + bound(i.b), Math.abs(i.derivative) < 1e-10 ? L('不变', 'Constant') : i.derivative > 0 ? L('升高', 'Increasing') : L('降低', 'Decreasing')])];
     return steps;
   };
 
@@ -204,7 +212,7 @@
         tex = R`\varphi_{${q.at}}` + (symbolic && !/^[0-9-]/.test(symbolic) ? '=' + symbolic : '') + VA.valueEq(answer.value, unitV);
       } else if (q.t === 'W') tex = i === 0 ? names.map(potential).join(R`\qquad `) : R`W=q_0(\varphi_{${q.a}}-\varphi_{${q.b}})` + VA.valueEq(answer.value, unitW);
       else if (q.t === 'Vcmp') tex = i === 0 ? names.map(potential).join(R`\qquad `) : null;
-      else if (q.t === 'angle') tex = R`\alpha` + VA.valueEq(answer.value) + R`^\circ`;
+      else if (q.t === 'angle') tex = answer.cosineQuestion ? R`\cos\alpha=\frac{E_{\parallel}}{|\vec E|}` + VA.valueEq(Math.cos(answer.value * Math.PI / 180)) : R`\alpha` + VA.valueEq(answer.value) + R`^\circ`;
       else if (q.t === 'bc' && tex) tex = tex.replace(/=([+-]?[0-9]+[.][0-9]+)$/, R`\approx $1`);
       return { t: text, tex, advanced: step.tex ? { text: L('以下保留数值代入核对。长度均除以 L，电荷除以 Q，场强除以 kQ/L²，电势除以 kQ/L，功除以 kQq/L；式中数值采用 k=1。带小数的近似读数不作为精确结果。', 'The numerical substitutions below use lengths divided by L, charges by Q, field by kQ/L², potential by kQ/L and work by kQq/L, with k=1. Rounded decimal readings are not exact results.'), tex: step.tex.replace(/=([+-]?[0-9]+[.][0-9]+)(?=,|$)/g, R`\approx $1`) } : null };
     });

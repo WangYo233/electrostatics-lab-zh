@@ -23,12 +23,15 @@ for (const pb of X.BUILTIN) {
         assert.ok(Math.abs(p.slope(s) - finiteDifference) < 1e-5 * Math.max(1, Math.abs(p.slope(s))));
         for (const source of p.sources) assert.ok(Math.abs(V.dist(V.lerp(p.a, p.b, s), source.p) ** 2 - ((s * p.length - source.h) ** 2 + source.b2)) < 1e-10);
       }
-      if (pb.id === 'tpt-triangle-three-like' && o.q.a === 'P' && o.q.b === 'G') {
-        assert.equal(p.roots.length, 0, 'PG has no interior stationary point');
+      if (pb.id === 'tpt-triangle-three-like' && o.q.a === 'P' && o.q.b === 'M') {
+        assert.equal(p.roots.length, 1, 'PM has one interior maximum');
         assert.ok(1e-10 > Math.abs(p.at(0).V - 3), 'potential at P');
-        assert.ok(1e-10 > Math.abs(p.at(1).V - 3 * Math.sqrt(3)), 'potential at G');
-        assert.ok(1e-10 > Math.abs(p.slope(1)), 'zero terminal slope at G');
-        for (const s of [0.01, 0.25, 0.5, 0.99]) assert.ok(p.slope(s) > 0, 'potential increases along PG');
+        assert.ok(1e-10 > Math.abs(p.at(1).V - (4 + 2 / Math.sqrt(3))), 'potential at M');
+        assert.ok(Math.abs(p.roots[0] - 0.9698432381197097) < 1e-10);
+        assert.ok(p.slope(0.5) > 0 && p.slope(0.99) < 0, 'potential first rises then falls');
+        assert.ok(!sol.R.pts.N, 'unused N is absent');
+        const text = JSON.stringify(X.pathSteps(pb, sol.R, o, 0.3));
+        assert.doesNotMatch(text, /\b(?:PN|AN|BN|CN|N)\b/, 'the PM guide uses the current geometry');
       } else if (p.special.kind === 'median') {
         assert.equal(p.roots.length, 1); const r = p.roots[0];
         assert.ok(Math.abs(r - 0.5694367096060693) < 1e-10);

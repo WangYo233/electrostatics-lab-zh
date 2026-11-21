@@ -156,7 +156,17 @@
       if (c) { d.pts[freeName(d)] = { def: c.def }; sol = X.solve(d); U.toast('观察点不足，已自动添加“' + c.text + '”作为观察点。'); }
     }
     const ns = Object.keys(d.pts).filter(n => sol.R.pts[n].p), all = Object.keys(sol.R.pts).filter(n => sol.R.pts[n].p);
-    const at = ns[0] || all.find(n => !srcN.has(n)) || all[0], b = all.find(n => n !== at && !srcN.has(n)) || all.find(n => n !== at);
+    let at = ns[0] || all.find(n => !srcN.has(n)) || all[0];
+    if (['E', 'Ezero', 'V'].includes(t)) {
+      const ranked = [...new Set(ns.concat(all))].filter(n => !srcN.has(n)).map(n => {
+        const o = X.answer(d, sol.R, { t, at: n });
+        if (X.exactAnswer) X.exactAnswer(d, sol.R, o);
+        const value = o.mag || o.answer || '', symmetric = o.plan?.d?.groups.some(g => g.type !== 'rest' && !g.unequal);
+        return { n, score: o.ok ? (!/\d\.\d/.test(value) ? 10 : 0) + (symmetric ? 2 : 0) + (t === 'E' && o.value > 1e-9 ? 1 : 0) : -1 };
+      }).sort((a, b) => b.score - a.score);
+      if (ranked[0]?.score >= 0) at = ranked[0].n;
+    }
+    const b = all.find(n => n !== at && !srcN.has(n)) || all.find(n => n !== at);
     return { t, at, a: at, b, q0: t === 'W' ? 1 : undefined };
   };
   // ---- 第 5 步：生成与发布 ----

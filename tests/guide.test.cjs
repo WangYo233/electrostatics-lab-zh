@@ -13,12 +13,12 @@ const triangle = X.solve(X.BUILTIN.find(p => p.id === 'tpt-triangle-three-like')
 const plan = triangle.ans[0].plan, i = plan.findIndex(s => s.id === 'similar'), step = plan[i];
 const draw = (steps, k, active = k) => VA.draw(steps, k, {}, { MH, C, R: 2, step: active });
 const hasPoint = (out, n, p) => (out.labels || []).some(l => l.text === n && V.dist(l.p, p) < 1e-9) && (out.spheres || []).some(s => V.dist(s.p, p) < 1e-9);
-assert.equal(step.sim.mn, 'N');
+assert.equal(step.sim.mn, 'M');
 const before = draw(plan, i - 1, i);
-assert.ok(hasPoint(before, 'N', step.sim.mid), 'prediction must show midpoint N before an answer');
-assert.ok(step.setup && step.setup.includes('N') && step.setup.includes('AB'), 'prediction must define N');
+assert.ok(hasPoint(before, 'M', step.sim.mid), 'prediction must show midpoint M before an answer');
+assert.ok(step.setup && step.setup.includes('M') && step.setup.includes('BC'), 'prediction must reuse M');
 assert.ok(!(before.labels || []).some(l => l.text === step.g.name), 'prediction must not reveal the requested resultant');
-assert.ok(hasPoint(draw(plan, i), 'N', step.sim.mid), 'midpoint remains visible after answering');
+assert.ok(hasPoint(draw(plan, i), 'M', step.sim.mid), 'midpoint remains visible after answering');
 let checked = 0;
 function checkPlan(steps, tag) {
   for (let j = 0; j < steps.length; j++) {

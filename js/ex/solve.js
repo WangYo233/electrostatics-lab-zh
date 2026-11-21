@@ -47,6 +47,14 @@
   X.num = num;
   const numTex = x => VA.texV(x);
   const near = (p, src) => src.some(s => V.dist(p, s.p) < 1e-9);
+  X.angleData = function (R, q) {
+    const p = R.pts[q.at]?.p, a = R.pts[q.a]?.p, b = R.pts[q.b]?.p;
+    if (!p || !a || !b) return null;
+    const E = R.field(p).E, u = V.sub(b, a), length = V.len(E) * V.len(u);
+    if (!Number.isFinite(length) || length < 1e-12) return null;
+    const cosine = U.clamp(V.dot(E, u) / length, -1, 1), degrees = Math.acos(cosine) * 180 / Math.PI;
+    return { cosine, special: [0, 30, 45, 60, 90, 120, 135, 150, 180].some(x => Math.abs(x - degrees) < 1e-7) };
+  };
 
   // 单个问题：答案、选项（含干扰项）、解析、诊断
   X.answer = function (pb, R, q) {
@@ -176,6 +184,23 @@
       }
       const o = X.answer(pb, R, q);
       if (X.exactAnswer) X.exactAnswer(pb, R, o);
+      if (o.ok && q.t === 'angle') {
+        const angle = X.angleData(R, q);
+        if (angle && !angle.special) {
+          o.cosineQuestion = true;
+          o.answer = 'cos α = ' + VA.txtV(angle.cosine);
+          o.options = [...new Set([angle.cosine, -angle.cosine, 0, 1, -1].map(x => 'cos α = ' + VA.txtV(x)))].slice(0, 4);
+          const step = { id: 'angleRatio', title: '由几何投影求余弦比值', text: '先求合场强及其沿指定方向的分量。余弦值等于该分量与合场强大小之比，无须先求非特殊角的度数，也无须用反三角函数。', tex: String.raw`\vec u=\vec r_{${q.b}}-\vec r_{${q.a}},\quad E_{\parallel}=\frac{\vec E\cdot\vec u}{|\vec u|}\qquad\cos\alpha=\frac{E_{\parallel}}{|\vec E|}${VA.valueEq(angle.cosine)}` };
+          const preceding = o.plan ? o.plan.filter(st => st.id !== 'list' && st.id !== 'group').map(st => ({ t: st.title + ': ' + st.text, tex: st.tex, rows: st.rows })) : (o.expl || []).slice(0, -1);
+          o.expl = preceding.concat({ t: step.text, tex: step.tex });
+          if (o.plan) o.plan.push(step);
+          o.distractors = o.options.filter(v => v !== o.answer).map(v => ({ v, why: '应先确定投影的正负，再用投影长度与合场强大小的比值核对。' }));
+        }
+      }
+      if (o.ok && o.options && !/\d\.\d/.test(X.rightOf(o))) {
+        const simple = o.options.filter(v => !/\d\.\d/.test(v));
+        if (simple.length >= 2) { o.options = simple; o.distractors = (o.distractors || []).filter(d => simple.includes(d.v)); }
+      }
       o.units = R.units;
       if (o.ok && R.analytic && q.t !== 'trend' && X.analyticSteps) o.expl = X.analyticSteps(pb, R, o);
       X.fieldChoices(R, o);
@@ -210,7 +235,7 @@
       case 'Vcmp': return '比较 ' + q.a + '、' + q.b + ' 两点电势的高低。';
       case 'trend': return '从 ' + q.a + ' 点沿直线到 ' + q.b + ' 点，电势怎样变化？';
       case 'W': return '把电荷量为 ' + X.qText(q.q0 || 1, 'q') + ' 的试探电荷从 ' + q.a + ' 点移到 ' + q.b + ' 点，静电力做的功是多少？';
-      case 'angle': return '求 ' + q.at + ' 点电场强度的方向与由 ' + q.a + ' 指向 ' + q.b + ' 的方向之间的夹角。';
+      case 'angle': { const angle = pb && X.angleData(X.resolve(pb), q); return '设 ' + q.at + ' 点电场强度与由 ' + q.a + ' 指向 ' + q.b + ' 的方向之间的夹角为 α，' + (angle && !angle.special ? '根据几何关系求 cos α（不必求 α 的度数）。' : '求 α。'); }
       case 'U': return '求这组点电荷的总相互作用能 U。';
       case 'pairs': return '计算总相互作用能时，要计入多少对不重复的电荷对？';
       case 'Ucmp': return '保持电荷总个数 N、圆盘半径 R 和每个电荷的电荷量不变，比较两种构型：N 个电荷等分圆周；把其中一个移到圆心，其余 N − 1 个等分圆周。哪种构型的总相互作用能较小？';
@@ -244,6 +269,7 @@
     sol.ans.forEach((o, i) => {
       if (!o.ok) { out.push({ k: 'bad', t: '第 ' + (i + 1) + ' 问：' + o.err }); return; }
       (o.diag || []).forEach(d => out.push({ k: d.k, t: '第 ' + (i + 1) + ' 问：' + d.t }));
+      if (['E', 'V', 'W', 'U', 'angle'].includes(o.q.t) && /\d\.\d/.test(o.mag || o.answer || '')) out.push({ k: 'info', t: '第 ' + (i + 1) + ' 问的结果需要数值近似。若用于手算练习，建议选中心、中点等特殊位置，采用简单电荷量，或改问场强是否为零、电势高低；近似读数适合用于曲线观察与验证。' });
       if (o.plan && o.plan.d && (o.q.t === 'E' || o.q.t === 'angle')) {
         const g = o.plan.d.groups, sym = g.filter(x => x.type !== 'rest' && !x.unequal).length;
         const nice = !!VA.nice(V.len(o.T));
